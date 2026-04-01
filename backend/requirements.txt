@@ -5,3 +5,4 @@ httpx
 pydantic-settings
 azure-keyvault-secrets
 azure-identity
+aiohttp
