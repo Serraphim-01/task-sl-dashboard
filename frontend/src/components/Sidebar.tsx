@@ -5,13 +5,12 @@ import './Sidebar.css';
 
 // Define your navigation items based on permissions
 const navItems = [
-  { path: '/account', label: 'Account Information', permission: 'read-edit' },
-  { path: '/device-commands', label: 'Device Command & Config Management', permission: 'read-edit' },
-  { path: '/device-config-assignment', label: 'Device Configuration Assignment', permission: 'read-edit' },
+  { path: '/', label: 'Dashboard', permission: 'read' },
+  { path: '/account', label: 'Account Details', permission: 'read' },
+  { path: '/data-usage', label: 'Data Usage', permission: 'read' },
+  { path: '/performance', label: 'Performance', permission: 'read' },
   { path: '/device-management', label: 'Device Management', permission: 'read-edit' },
-  { path: '/device-telemetry', label: 'Device Telemetry', permission: 'read-edit' },
-  { path: '/service-accounts', label: 'Service Account Management', permission: 'read-edit' },
-  { path: '/service-plan', label: 'Service Plan', permission: 'read-edit' },
+  { path: '/support', label: 'Support', permission: 'read-edit' },
 ];
 
 const Sidebar: React.FC = () => {

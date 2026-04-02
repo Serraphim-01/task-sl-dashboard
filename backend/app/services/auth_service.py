@@ -10,46 +10,28 @@ logger = logging.getLogger(__name__)
 class StarlinkAuth:
     """
     Handles OIDC token retrieval and caching for V2 service accounts.
-    Credentials are retrieved from Azure Key Vault.
+    Credentials passed explicitly for customer multi-tenancy.
     """
     
-    def __init__(self):
-        """Initialize without credentials - they'll be fetched from KMS on demand."""
-        self._client_id: Optional[str] = None
-        self._client_secret: Optional[str] = None
+    def __init__(self, client_id: str, client_secret: str):
+        self.client_id = client_id
+        self.client_secret = client_secret
         self._access_token: Optional[str] = None
         self._token_expiry: Optional[datetime] = None
-    
-    async def _load_credentials(self) -> None:
-        """Load credentials from Azure Key Vault."""
-        if self._client_id and self._client_secret:
-            return  # Already loaded
-        
-        kms = await get_kms_service()
-        
-        self._client_id = await kms.get_secret("starlink-provider-client-id")
-        self._client_secret = await kms.get_secret("starlink-provider-client-secret")
-        
-        if not self._client_id or not self._client_secret:
-            raise ValueError("Failed to load Starlink credentials from Key Vault")
-        
-        logger.info("Successfully loaded Starlink credentials from Key Vault")
     
     async def _fetch_token(self) -> str:
         """
         Obtain a new access token using client credentials.
         Returns the access token string.
         """
-        await self._load_credentials()
-        
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
                     "https://starlink.com/api/auth/connect/token",
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                     data={
-                        "client_id": self._client_id,
-                        "client_secret": self._client_secret,
+                        "client_id": self.client_id,
+                        "client_secret": self.client_secret,
                         "grant_type": "client_credentials",
                     },
                     timeout=10,

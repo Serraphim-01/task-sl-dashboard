@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAccountInfo } from '../services/api.ts';
+import { getAccountDetails } from '../services/api.ts';
 
 interface AccountContent {
   accountNumber?: string;
@@ -24,7 +24,7 @@ const AccountInfo: React.FC = () => {
   useEffect(() => {
     const fetchAccount = async () => {
       try {
-        const data = await getAccountInfo();
+        const data = await getAccountDetails();
         setAccount(data);
       } catch (err: any) {
         setError(err.message || 'Failed to load account information');

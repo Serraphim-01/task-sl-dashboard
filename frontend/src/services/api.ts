@@ -7,13 +7,8 @@ const api = axios.create({
   },
 });
 
-export const getAccountInfo = async () => {
+export const getAccountDetails = async () => {
   const response = await api.get('/account');
-  return response.data;
-};
-
-export const getServicePlan = async () => {
-  const response = await api.get('/service-plan');
   return response.data;
 };
 

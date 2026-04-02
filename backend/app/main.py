@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.v1 import customers, telemetry, auth, account, service_plan
+from app.api.v1 import customers, telemetry, auth, account
 
 app = FastAPI(title="Starlink Partner Dashboard", version="1.0.0")
 
@@ -18,7 +18,6 @@ app.include_router(customers.router, prefix="/api/v1/customers", tags=["customer
 app.include_router(telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"])
 
 app.include_router(account.router, prefix="/api/v1", tags=["account"])
-app.include_router(service_plan.router, prefix="/api/v1", tags=["service_plan"])
 
 @app.get("/health")
 async def health_check():
