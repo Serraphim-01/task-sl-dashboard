@@ -1,21 +1,25 @@
-from fastapi import FastAPI
-from app.api.v1 import customers, telemetry, auth
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.database import get_db
+from app.api.v1 import customers_router, telemetry_router
+from app.api.v1.auth import router as auth_router   # <-- ADD THIS
 
 app = FastAPI(title="Starlink Partner Dashboard", version="1.0.0")
 
-from fastapi.middleware.cors import CORSMiddleware
-
+# CORS middleware (already present)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(customers.router, prefix="/api/v1/customers", tags=["customers"])
-app.include_router(telemetry.router, prefix="/api/v1/telemetry", tags=["telemetry"])
+# Include routers
+app.include_router(customers_router, prefix="/api/v1/customers", tags=["customers"], dependencies=[Depends(get_db)])
+app.include_router(telemetry_router, prefix="/api/v1/telemetry", tags=["telemetry"], dependencies=[Depends(get_db)])
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])   # <-- ADD THIS
 
 @app.get("/health")
 async def health_check():

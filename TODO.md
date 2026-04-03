@@ -1,15 +1,11 @@
-# Fix CORS + 500 Error - Missing VAULT_URL
+# Task: Update backend config, database, main.py for required settings and async DB
 
-**Status:** In progress
+## Steps:
+1. [x] Create TODO.md with plan breakdown
+2. [x] Edit backend/app/config.py: Make database_url and vault_url required, add settings instance
+3. [x] Verify no changes needed for database.py and main.py
+4. [x] Test: cd backend && uvicorn app.main:app --reload (ensure starts without errors) - Server running successfully at http://127.0.0.1:8000
+5. [x] Mark complete and attempt_completion
 
-## Root Cause
-- Backend running locally (uvicorn)
-- test_connection → StarlinkAuth → kms_service.AzureKeyVaultService() raises ValueError: VAULT_URL environment variable is required
-- 500 error with CORS headers sent, but browser blocks due to error response handling.
+**All steps complete.**
 
-## Final Status
-- [x] CORS/500 fixed.
-- [x] Pure KMS test endpoint `/api/v1/auth/kms-test` added with terminal logs (connection, secret lengths).
-- [x] Frontend button updated to `/kms-test`, displays detail msg.
-- [x] Logging: KMS success/fail, client_id/secret lengths in uvicorn terminal.
-- [x] Complete: Test KMS only, no Starlink call.
