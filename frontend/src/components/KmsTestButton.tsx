@@ -11,11 +11,12 @@ const KmsTestButton: React.FC = () => {
     setError(null);
     setStatus(null);
     try {
-      const response = await api.get('/auth/test-connection');
-      setStatus('✅ Connection successful! Starlink account data received.');
-      console.log(response.data);
+      const response = await api.get('/auth/kms-test');
+      setStatus(`✅ KMS successful! Secrets loaded. Vault logs in backend terminal.`);
+      console.log('KMS test response:', response.data);
     } catch (err: any) {
-      setError(`❌ Connection failed: ${err.message}`);
+      setError(`❌ KMS test failed: ${err.response?.data?.detail || err.message}`);
+      console.error('KMS error:', err.response?.data || err);
     } finally {
       setLoading(false);
     }

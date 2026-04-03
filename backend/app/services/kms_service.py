@@ -20,11 +20,16 @@ class AzureKeyVaultService:
         
         Args:
             vault_url: The URL of your Azure Key Vault.
-                       If not provided, reads from VAULT_URL environment variable.
+                       If not provided, reads from VAULT_URL env var or settings.vault_url.
         """
-        self.vault_url = vault_url or os.environ.get("VAULT_URL")
+        from app.config import settings
+        env_url = os.environ.get("VAULT_URL")
+        self.vault_url = vault_url or env_url or settings.vault_url
         if not self.vault_url:
-            raise ValueError("VAULT_URL environment variable is required")
+            self.logger.warning("No VAULT_URL found. KMS disabled.")
+            self.vault_url = None
+        else:
+            logger.info(f"KMS initialized with vault: {self.vault_url}")
         
         self._client: Optional[SecretClient] = None
     
@@ -51,10 +56,16 @@ class AzureKeyVaultService:
         Returns:
             Secret value as string, or None if not found
         """
+        if not self.vault_url:
+            logger.warning(f"KMS disabled, cannot get secret: {secret_name}")
+            return None
+        
         try:
+            logger.info(f"Sending request to vault for secret: {secret_name}")
             client = await self._get_client()
             secret = await client.get_secret(secret_name)
-            logger.info(f"Successfully retrieved secret: {secret_name}")
+            logger.info(f"Vault response OK for secret: {secret_name}")
+            logger.info(f"Secret {secret_name} fetched, length={len(secret.value)}")
             return secret.value
         except Exception as e:
             logger.error(f"Failed to retrieve secret {secret_name}: {e}")
