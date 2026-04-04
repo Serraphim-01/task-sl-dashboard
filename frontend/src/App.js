@@ -9,6 +9,9 @@ import DeviceManagement from './pages/DeviceManagement.tsx';
 import DeviceTelemetry from './pages/DeviceTelemetry.tsx';
 import ServiceAccounts from './pages/ServiceAccounts.tsx';
 import ServicePlan from './pages/ServicePlan.tsx';
+import AdminCustomerForm from './pages/AdminCustomerForm.tsx';
+import CustomerLogin from './pages/CustomerLogin.tsx';
+import CustomerDashboard from './pages/CustomerDashboard.tsx';
 
 function App() {
   return (
@@ -25,6 +28,9 @@ function App() {
             <Route path="/device-telemetry" element={<DeviceTelemetry />} />
             <Route path="/service-accounts" element={<ServiceAccounts />} />
             <Route path="/service-plan" element={<ServicePlan />} />
+            <Route path="/admin/customers" element={<AdminCustomerForm />} />
+            <Route path="/login" element={<CustomerLogin />} />
+            <Route path="/customer/dashboard" element={<CustomerDashboard />} />
           </Routes>
         </main>
       </div>

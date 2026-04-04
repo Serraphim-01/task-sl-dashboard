@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import get_db
-from app.api.v1 import customers_router, telemetry_router, health_router   
+from app.api.v1 import customers_router, telemetry_router, health_router, customer_router
 from app.api.v1.auth import router as auth_router
 
 app = FastAPI(title="Starlink Partner Dashboard", version="1.0.0")
@@ -17,10 +17,11 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(customers_router, prefix="/api/v1/customers", tags=["customers"], dependencies=[Depends(get_db)])
-app.include_router(telemetry_router, prefix="/api/v1/telemetry", tags=["telemetry"], dependencies=[Depends(get_db)])
+app.include_router(customers_router, prefix="/api/v1", tags=["customers"])
+app.include_router(telemetry_router, prefix="/api/v1/telemetry", tags=["telemetry"])
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(health_router, prefix="/api/v1/health", tags=["health"])
+app.include_router(customer_router, prefix="/api/v1/customer", tags=["customer"])
 
 @app.get("/health")
 async def health_check():

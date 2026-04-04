@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../services/api';
+import api from '../services/api.ts';
 
 const DbTestButton: React.FC = () => {
   const [status, setStatus] = useState<string | null>(null);

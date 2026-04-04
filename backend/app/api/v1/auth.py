@@ -1,9 +1,107 @@
 # backend/app/api/v1/auth.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.services.auth_service import StarlinkAuth
+from app.database import User
+from app.utils.password import verify_password
+from app.utils.jwt import create_access_token, verify_token
+from app.database import SessionLocal
 import httpx
+from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter()
+
+# Pydantic models for request/response
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    message: str
+    user_id: int
+    email: str
+    is_admin: bool
+
+
+@router.post("/login", response_model=LoginResponse)
+async def login(request: LoginRequest, response: Response):
+    """
+    Authenticate customer and return JWT token in HTTP-only cookie.
+    """
+    db = SessionLocal()
+    try:
+        # Look up user by email
+        user = db.query(User).filter(User.email == request.email).first()
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Verify password
+        if not verify_password(request.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Create JWT token
+        token_data = {
+            "user_id": user.id,
+            "email": user.email,
+            "is_admin": user.is_admin
+        }
+        access_token = create_access_token(data=token_data)
+        
+        # Set HTTP-only cookie with secure flags
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=False,  # Set to True in production with HTTPS
+            samesite="strict",
+            max_age=86400  # 24 hours
+        )
+        
+        return LoginResponse(
+            message="Login successful",
+            user_id=user.id,
+            email=user.email,
+            is_admin=user.is_admin
+        )
+    finally:
+        db.close()
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())) -> User:
+    """
+    Dependency to get current authenticated user from JWT token.
+    Extracts token from Authorization header.
+    """
+    token = credentials.credentials
+    payload = verify_token(token)
+    
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    user_id = payload.get("user_id")
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid token payload")
+    
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+    finally:
+        db.close()
+
+
+def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency to get current admin user. Checks is_admin flag.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
 
 @router.get("/kms-test")
 async def kms_test():
