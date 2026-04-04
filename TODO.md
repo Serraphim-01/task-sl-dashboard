@@ -1,14 +1,14 @@
-# Task: Frontend button for backend DB connectivity test
+# Task: Connect backend (local) to DB (Docker)
 
-Previous config/DB task complete.
+## Steps to complete:
+- [x] 1. Create/update backend/.env with local DATABASE_URL
+- [x] 2. Run `docker compose up -d --build db` ✅ DB container created
+- [x] 3. Verify DB container running (`docker ps`) ✅ Up/healthy port 5432
+- [ ] 4. cd backend && pip install -r requirements.txt (added sqlalchemy[asyncio] asyncpg)
+- [ ] 5. cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+- [ ] 6. Test connection: curl http://localhost:8000/api/v1/health/db
 
-## Steps:
-1. [x] Create TODO.md
-2. [x] Create backend/app/api/v1/health.py: /db endpoint with get_db dependency for ping
-3. [x] Edit backend/app/api/v1/__init__.py: Export health_router
-4. [x] Edit backend/app/main.py: Include health_router
-5. [x] Create frontend/src/components/DbTestButton.tsx
-6. [x] Edit frontend/src/pages/AccountInfo.tsx: Add DbTestButton (and KmsTestButton)
-7. [] Test: Run frontend npm start, navigate to AccountInfo page, click buttons
-8. [x] Complete
+## Progress Notes:
+✅ Plan approved by user.
+✅ Step 1 completed: .env created/updated.
 
