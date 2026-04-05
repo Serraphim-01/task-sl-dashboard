@@ -20,47 +20,36 @@ const CustomerPortal: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', minHeight: 'calc(100vh - 60px)' }}>
+    <div className="flex min-h-[calc(100vh-60px)]">
       {/* Sidebar */}
       <div
-        style={{
-          width: sidebarOpen ? '250px' : '60px',
-          backgroundColor: '#2c3e50',
-          color: 'white',
-          transition: 'width 0.3s',
-          overflow: 'hidden',
-        }}
+        className={`bg-starlink-gray text-starlink-text transition-all duration-300 overflow-hidden ${
+          sidebarOpen ? 'w-[250px]' : 'w-[60px]'
+        }`}
       >
         <div
-          style={{
-            padding: '20px',
-            borderBottom: '1px solid #34495e',
-            cursor: 'pointer',
-          }}
+          className="p-5 border-b border-starlink-border cursor-pointer"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
-          <h3 style={{ margin: 0, fontSize: sidebarOpen ? '18px' : '24px' }}>
+          <h3 className={`m-0 text-lg ${sidebarOpen ? 'text-lg' : 'text-2xl'}`}>
             {sidebarOpen ? 'Customer Portal' : '📡'}
           </h3>
         </div>
 
-        <nav style={{ padding: '10px 0' }}>
+        <nav className="py-3">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                padding: '15px 20px',
-                color: 'white',
-                textDecoration: 'none',
-                backgroundColor: isActive ? '#34495e' : 'transparent',
-                borderLeft: isActive ? '4px solid #3498db' : '4px solid transparent',
-                transition: 'all 0.2s',
-              })}
+              className={({ isActive }) =>
+                `flex items-center px-5 py-4 text-starlink-text no-underline transition-all duration-200 ${
+                  isActive
+                    ? 'bg-starlink-light border-l-4 border-starlink-accent'
+                    : 'border-l-4 border-transparent hover:bg-starlink-light'
+                }`
+              }
             >
-              <span style={{ fontSize: '20px', marginRight: '10px' }}>{item.icon}</span>
+              <span className="text-xl mr-3">{item.icon}</span>
               {sidebarOpen && <span>{item.label}</span>}
             </NavLink>
           ))}
@@ -68,7 +57,7 @@ const CustomerPortal: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, overflow: 'auto', backgroundColor: '#f5f5f5' }}>
+      <div className="flex-1 overflow-auto bg-starlink-darker">
         <Routes>
           <Route path="/" element={<AccountInfo />} />
           <Route path="/account" element={<AccountInfo />} />

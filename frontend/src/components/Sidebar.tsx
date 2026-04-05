@@ -2,7 +2,6 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import KmsTestButton from './KmsTestButton.tsx';
-import './Sidebar.css';
 
 // Admin navigation items
 const adminNavItems = [
@@ -26,24 +25,28 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="sidebar">
+    <div className="w-[280px] bg-starlink-black text-starlink-text h-screen fixed left-0 top-0 flex flex-col justify-between py-8 px-4 box-border">
       {/* Logo Area */}
-      <div className="logo">
-        <h2>Starlink Dashboard</h2>
-        <p className="logo-sub">Partner Portal</p>
+      <div className="text-center mb-8">
+        <h2 className="m-0 text-2xl font-semibold">Starlink Dashboard</h2>
+        <p className="text-sm text-starlink-text-secondary mt-1">Partner Portal</p>
       </div>
 
       <nav className="nav">
         {/* Admin Section - Only show for admins */}
         {isAdmin && (
-          <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
-            <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>ADMIN</h4>
-            <ul>
+          <div className="mt-5 border-t border-starlink-border pt-3">
+            <h4 className="text-starlink-text-muted text-xs mb-3 pl-4">ADMIN</h4>
+            <ul className="list-none p-0 m-0 space-y-2">
               {adminNavItems.map((item) => (
                 <li key={item.path}>
                   <NavLink
                     to={item.path}
-                    className={({ isActive }) => (isActive ? 'active' : '')}
+                    className={({ isActive }) => 
+                      `block px-4 py-3 text-starlink-text no-underline rounded transition-all duration-200 ${
+                        isActive ? 'bg-starlink-light font-medium' : 'hover:bg-starlink-gray'
+                      }`
+                    }
                   >
                     {item.label}
                   </NavLink>
@@ -52,15 +55,7 @@ const Sidebar: React.FC = () => {
               <li>
                 <button
                   onClick={handleLogout}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '10px 15px',
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
+                  className="w-full text-left px-4 py-3 text-starlink-text hover:bg-starlink-gray rounded transition-all duration-200 cursor-pointer bg-transparent border-none"
                 >
                   Logout
                 </button>
@@ -71,14 +66,18 @@ const Sidebar: React.FC = () => {
 
         {/* Customer Section - Only show for customers */}
         {!isAdmin && isAuthenticated && (
-          <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
-            <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>CUSTOMER</h4>
-            <ul>
+          <div className="mt-5 border-t border-starlink-border pt-3">
+            <h4 className="text-starlink-text-muted text-xs mb-3 pl-4">CUSTOMER</h4>
+            <ul className="list-none p-0 m-0 space-y-2">
               {customerNavItems.map((item) => (
                 <li key={item.path}>
                   <NavLink
                     to={item.path}
-                    className={({ isActive }) => (isActive ? 'active' : '')}
+                    className={({ isActive }) => 
+                      `block px-4 py-3 text-starlink-text no-underline rounded transition-all duration-200 ${
+                        isActive ? 'bg-starlink-light font-medium' : 'hover:bg-starlink-gray'
+                      }`
+                    }
                   >
                     {item.label}
                   </NavLink>
@@ -87,15 +86,7 @@ const Sidebar: React.FC = () => {
               <li>
                 <button
                   onClick={handleLogout}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '10px 15px',
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
+                  className="w-full text-left px-4 py-3 text-starlink-text hover:bg-starlink-gray rounded transition-all duration-200 cursor-pointer bg-transparent border-none"
                 >
                   Logout
                 </button>
@@ -108,13 +99,17 @@ const Sidebar: React.FC = () => {
         {!isAuthenticated && (
           <>
             {/* Admin Section */}
-            <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
-              <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>ADMIN</h4>
-              <ul>
+            <div className="mt-5 border-t border-starlink-border pt-3">
+              <h4 className="text-starlink-text-muted text-xs mb-3 pl-4">ADMIN</h4>
+              <ul className="list-none p-0 m-0 space-y-2">
                 <li>
                   <NavLink
                     to="/admin/login"
-                    className={({ isActive }) => (isActive ? 'active' : '')}
+                    className={({ isActive }) => 
+                      `block px-4 py-3 text-starlink-text no-underline rounded transition-all duration-200 ${
+                        isActive ? 'bg-starlink-light font-medium' : 'hover:bg-starlink-gray'
+                      }`
+                    }
                   >
                     Admin Login
                   </NavLink>
@@ -123,13 +118,17 @@ const Sidebar: React.FC = () => {
             </div>
 
             {/* Customer Section */}
-            <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
-              <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>CUSTOMER</h4>
-              <ul>
+            <div className="mt-5 border-t border-starlink-border pt-3">
+              <h4 className="text-starlink-text-muted text-xs mb-3 pl-4">CUSTOMER</h4>
+              <ul className="list-none p-0 m-0 space-y-2">
                 <li>
                   <NavLink
                     to="/login"
-                    className={({ isActive }) => (isActive ? 'active' : '')}
+                    className={({ isActive }) => 
+                      `block px-4 py-3 text-starlink-text no-underline rounded transition-all duration-200 ${
+                        isActive ? 'bg-starlink-light font-medium' : 'hover:bg-starlink-gray'
+                      }`
+                    }
                   >
                     Customer Login
                   </NavLink>
@@ -141,7 +140,7 @@ const Sidebar: React.FC = () => {
       </nav>
 
       {/* KMS Test Button at bottom */}
-      <div className="kms-test">
+      <div className="mt-auto pt-4 border-t border-starlink-border">
         <KmsTestButton />
       </div>
     </div>

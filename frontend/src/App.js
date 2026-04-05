@@ -22,9 +22,9 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div style={{ display: 'flex' }}>
+        <div className="flex min-h-screen bg-starlink-dark">
           <Sidebar />
-          <main style={{ marginLeft: '280px', flex: 1, backgroundColor: '#ffffff', minHeight: '100vh' }}>
+          <main className="flex-1 ml-[280px] bg-starlink-dark min-h-screen">
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/account" element={<AccountInfo />} />

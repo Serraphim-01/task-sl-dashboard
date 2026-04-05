@@ -29,16 +29,16 @@ const AccountInfo: React.FC = () => {
   };
 
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}><h2>Loading account information...</h2></div>;
+    return <div className="p-10 text-center"><h2 className="text-xl text-starlink-text">Loading account information...</h2></div>;
   }
 
   if (error) {
     return (
-      <div style={{ padding: '40px' }}>
-        <div style={{ padding: '15px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px' }}>
+      <div className="p-10">
+        <div className="p-4 bg-red-900/50 border border-red-700 text-red-200 rounded">
           Error: {error}
         </div>
-        <button onClick={fetchData} style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}>
+        <button onClick={fetchData} className="mt-5 btn-secondary">
           Retry
         </button>
       </div>
@@ -46,56 +46,54 @@ const AccountInfo: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2 style={{ marginBottom: '30px' }}>👤 Account Information</h2>
+    <div className="p-10 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-8 text-starlink-text">👤 Account Information</h2>
 
       {/* Account Details */}
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, color: '#2c3e50' }}>Account Details</h3>
+      <div className="card mb-5">
+        <h3 className="mt-0 text-xl font-semibold text-starlink-text mb-4">Account Details</h3>
         {accountData ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(accountData).map(([key, value]) => (
-              <div key={key} style={{ padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                <strong style={{ color: '#6c757d', fontSize: '12px', textTransform: 'uppercase' }}>{key}</strong>
-                <p style={{ margin: '5px 0 0 0', fontSize: '16px' }}>
+              <div key={key} className="p-3 bg-starlink-light rounded border border-starlink-border">
+                <strong className="text-starlink-text-muted text-xs uppercase">{key}</strong>
+                <p className="mt-1 text-base text-starlink-text">
                   {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                 </p>
               </div>
             ))}
           </div>
         ) : (
-          <p>No account data available</p>
+          <p className="text-starlink-text-secondary">No account data available</p>
         )}
       </div>
 
       {/* Account Users */}
       {users.length > 0 && (
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, color: '#2c3e50' }}>Account Users ({users.length})</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="card">
+          <h3 className="mt-0 text-xl font-semibold text-starlink-text mb-4">Account Users ({users.length})</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
               <thead>
-                <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>User ID</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Email</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Role</th>
-                  <th style={{ padding: '12px', textAlign: 'left' }}>Status</th>
+                <tr className="bg-starlink-light border-b-2 border-starlink-border">
+                  <th className="p-3 text-left text-starlink-text">User ID</th>
+                  <th className="p-3 text-left text-starlink-text">Email</th>
+                  <th className="p-3 text-left text-starlink-text">Role</th>
+                  <th className="p-3 text-left text-starlink-text">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user: any, index: number) => (
-                  <tr key={index} style={{ borderBottom: '1px solid #dee2e6' }}>
-                    <td style={{ padding: '12px' }}>{user.id || user.userId || 'N/A'}</td>
-                    <td style={{ padding: '12px' }}>{user.email || 'N/A'}</td>
-                    <td style={{ padding: '12px' }}>{user.role || 'N/A'}</td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: user.status === 'active' ? '#28a745' : '#6c757d',
-                        color: 'white',
-                        fontSize: '12px',
-                      }}>
+                  <tr key={index} className="border-b border-starlink-border hover:bg-starlink-light/50 transition-colors">
+                    <td className="p-3 text-starlink-text">{user.id || user.userId || 'N/A'}</td>
+                    <td className="p-3 text-starlink-text">{user.email || 'N/A'}</td>
+                    <td className="p-3 text-starlink-text">{user.role || 'N/A'}</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        user.status === 'active' 
+                          ? 'bg-green-600 text-white' 
+                          : 'bg-gray-600 text-white'
+                      }`}>
                         {user.status || 'Unknown'}
                       </span>
                     </td>
@@ -109,16 +107,7 @@ const AccountInfo: React.FC = () => {
 
       <button
         onClick={fetchData}
-        style={{
-          marginTop: '20px',
-          padding: '10px 20px',
-          backgroundColor: '#007bff',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontSize: '16px',
-        }}
+        className="btn-primary mt-5"
       >
         Refresh Data
       </button>

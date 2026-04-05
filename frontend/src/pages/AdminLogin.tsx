@@ -42,26 +42,18 @@ const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
-      <h2 style={{ textAlign: 'center' }}>Admin Login</h2>
+    <div className="max-w-md mx-auto my-24 p-8">
+      <h2 className="text-3xl font-bold text-center mb-8 text-starlink-text">Admin Login</h2>
       
       {error && (
-        <div
-          style={{
-            padding: '10px',
-            marginBottom: '20px',
-            borderRadius: '4px',
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-          }}
-        >
+        <div className="p-4 mb-6 rounded bg-red-900/50 border border-red-700 text-red-200">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block mb-2 font-semibold text-starlink-text">
             Admin Email:
           </label>
           <input
@@ -70,12 +62,12 @@ const AdminLogin: React.FC = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            className="input-field"
           />
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <div>
+          <label className="block mb-2 font-semibold text-starlink-text">
             Password:
           </label>
           <input
@@ -84,23 +76,14 @@ const AdminLogin: React.FC = () => {
             value={formData.password}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            className="input-field"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          style={{
-            width: '100%',
-            padding: '10px',
-            backgroundColor: loading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
-          }}
+          className="btn-primary w-full py-3 text-base"
         >
           {loading ? 'Logging in...' : 'Admin Login'}
         </button>
