@@ -7,6 +7,8 @@ from app.database import SessionLocal
 from app.api.v1.auth import get_current_admin_user
 import re
 import logging
+from typing import List
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -25,6 +27,19 @@ class CreateCustomerResponse(BaseModel):
     message: str
     user_id: int
     email: str
+
+
+class UserListItem(BaseModel):
+    user_id: int
+    email: str
+    enterprise_name: str
+    is_admin: bool
+    created_at: datetime | None = None
+
+
+class UserListResponse(BaseModel):
+    users: List[UserListItem]
+    total: int
 
 
 @router.post("/admin/customers", response_model=CreateCustomerResponse)
@@ -113,6 +128,83 @@ async def create_customer(
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating customer: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    finally:
+        db.close()
+
+
+@router.get("/admin/users", response_model=UserListResponse)
+async def list_users(current_admin: User = Depends(get_current_admin_user)):
+    """
+    Admin endpoint to list all users.
+    """
+    db = SessionLocal()
+    try:
+        users = db.query(User).all()
+        user_list = [
+            UserListItem(
+                user_id=user.id,
+                email=user.email,
+                enterprise_name=user.enterprise_name,
+                is_admin=user.is_admin,
+                created_at=user.created_at
+            )
+            for user in users
+        ]
+        return UserListResponse(users=user_list, total=len(user_list))
+    finally:
+        db.close()
+
+
+@router.delete("/admin/users/{user_id}")
+async def delete_user(
+    user_id: int,
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Admin endpoint to delete a user from both database and Key Vault.
+    """
+    db = SessionLocal()
+    try:
+        # Get the user to delete
+        user_to_delete = db.query(User).filter(User.id == user_id).first()
+        
+        if not user_to_delete:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Prevent admin from deleting themselves
+        if user_to_delete.id == current_admin.id:
+            raise HTTPException(status_code=400, detail="Cannot delete your own account")
+        
+        logger.info(f"Deleting user: {user_to_delete.email} (ID: {user_id})")
+        
+        # Delete secrets from Key Vault
+        kms = await get_kms_service()
+        
+        try:
+            # Note: Azure Key Vault soft-deletes secrets, they can be purged later
+            # We'll set them to empty values as a workaround
+            await kms.set_secret(user_to_delete.kms_client_id_secret_name, "")
+            await kms.set_secret(user_to_delete.kms_client_secret_secret_name, "")
+            logger.info(f"Cleared Key Vault secrets for user: {user_to_delete.email}")
+        except Exception as e:
+            logger.warning(f"Failed to clear Key Vault secrets: {e}")
+            # Continue with DB deletion even if KMS fails
+        
+        # Delete user from database
+        db.delete(user_to_delete)
+        db.commit()
+        
+        logger.info(f"Successfully deleted user: {user_to_delete.email} (ID: {user_id})")
+        
+        return {"message": f"User {user_to_delete.email} deleted successfully"}
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting user: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         db.close()

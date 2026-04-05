@@ -7,6 +7,7 @@ import './Sidebar.css';
 // Admin navigation items
 const adminNavItems = [
   { path: '/admin/customers', label: 'Manage Customers' },
+  { path: '/admin/users', label: 'User Management' },
   { path: '/admin/login', label: 'Admin Login' },
 ];
 

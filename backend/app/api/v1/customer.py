@@ -23,10 +23,18 @@ async def get_starlink_account(current_user: User = Depends(get_current_user)):
         client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
         
         if not client_id or not client_secret:
+            logger.error(f"Failed to retrieve credentials from Key Vault for user {current_user.email}")
+            logger.error(f"Client ID secret name: {current_user.kms_client_id_secret_name}")
+            logger.error(f"Client Secret secret name: {current_user.kms_client_secret_secret_name}")
             raise HTTPException(status_code=500, detail="Failed to retrieve credentials from Key Vault")
+        
+        logger.info(f"Retrieved credentials from Key Vault for user: {current_user.email}")
+        logger.info(f"Client ID length: {len(client_id) if client_id else 0}")
+        logger.info(f"Client Secret length: {len(client_secret) if client_secret else 0}")
         
         # Get access token from Starlink
         async with httpx.AsyncClient() as client:
+            logger.info("Attempting to get Starlink access token...")
             token_response = await client.post(
                 "https://starlink.com/api/auth/connect/token",
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -39,8 +47,13 @@ async def get_starlink_account(current_user: User = Depends(get_current_user)):
             )
             
             if token_response.status_code != 200:
-                logger.error(f"Starlink token request failed: {token_response.status_code}")
-                raise HTTPException(status_code=401, detail="Invalid Starlink credentials")
+                logger.error(f"Starlink token request failed with status: {token_response.status_code}")
+                logger.error(f"Starlink response body: {token_response.text}")
+                logger.error(f"Client ID used (first 10 chars): {client_id[:10] if client_id else 'None'}...")
+                raise HTTPException(
+                    status_code=401, 
+                    detail=f"Invalid Starlink credentials. Starlink API returned: {token_response.status_code}"
+                )
             
             token_data = token_response.json()
             access_token = token_data.get("access_token")

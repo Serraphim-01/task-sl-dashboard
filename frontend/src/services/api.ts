@@ -77,4 +77,16 @@ export const getCurrentUser = async () => {
   return response.data;
 };
 
+// List all users (admin only)
+export const listUsers = async () => {
+  const response = await api.get('/admin/users');
+  return response.data;
+};
+
+// Delete user (admin only)
+export const deleteUser = async (userId: number) => {
+  const response = await api.delete(`/admin/users/${userId}`);
+  return response.data;
+};
+
 export default api;

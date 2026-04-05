@@ -12,6 +12,7 @@ import DeviceTelemetry from './pages/DeviceTelemetry.tsx';
 import ServiceAccounts from './pages/ServiceAccounts.tsx';
 import ServicePlan from './pages/ServicePlan.tsx';
 import AdminCustomerForm from './pages/AdminCustomerForm.tsx';
+import UserManagement from './pages/UserManagement.tsx';
 import AdminLogin from './pages/AdminLogin.tsx';
 import CustomerLogin from './pages/CustomerLogin.tsx';
 import CustomerDashboard from './pages/CustomerDashboard.tsx';
@@ -36,6 +37,11 @@ function App() {
               <Route path="/admin/customers" element={
                 <ProtectedRoute>
                   <AdminCustomerForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/users" element={
+                <ProtectedRoute>
+                  <UserManagement />
                 </ProtectedRoute>
               } />
               <Route path="/login" element={<CustomerLogin />} />
