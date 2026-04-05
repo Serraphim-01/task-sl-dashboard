@@ -15,7 +15,7 @@ import AdminCustomerForm from './pages/AdminCustomerForm.tsx';
 import UserManagement from './pages/UserManagement.tsx';
 import AdminLogin from './pages/AdminLogin.tsx';
 import CustomerLogin from './pages/CustomerLogin.tsx';
-import CustomerDashboard from './pages/CustomerDashboard.tsx';
+import CustomerPortal from './pages/CustomerPortal.tsx';
 
 function App() {
   return (
@@ -45,7 +45,11 @@ function App() {
                 </ProtectedRoute>
               } />
               <Route path="/login" element={<CustomerLogin />} />
-              <Route path="/customer/dashboard" element={<CustomerDashboard />} />
+              <Route path="/customer/portal/*" element={
+                <ProtectedRoute>
+                  <CustomerPortal />
+                </ProtectedRoute>
+              } />
             </Routes>
           </main>
         </div>

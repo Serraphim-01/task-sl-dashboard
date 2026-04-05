@@ -1,146 +1,337 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from app.database import User
 from app.api.v1.auth import get_current_user
 from app.services.kms_service import get_kms_service
-import httpx
+from app.services.starlink_v2_service import StarlinkV2Service
 import logging
+from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/starlink/account")
-async def get_starlink_account(current_user: User = Depends(get_current_user)):
+async def get_starlink_service(current_user: User) -> StarlinkV2Service:
     """
-    Get Starlink account information for the authenticated customer.
-    Fetches credentials from Key Vault and calls Starlink API.
+    Helper function to create Starlink V2 Service instance for the current user.
+    Fetches credentials from Key Vault and initializes the service.
     """
-    try:
-        # Get credentials from Key Vault using secret names stored in user record
-        kms = await get_kms_service()
-        
-        client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
-        client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
-        
-        if not client_id or not client_secret:
-            logger.error(f"Failed to retrieve credentials from Key Vault for user {current_user.email}")
-            logger.error(f"Client ID secret name: {current_user.kms_client_id_secret_name}")
-            logger.error(f"Client Secret secret name: {current_user.kms_client_secret_secret_name}")
-            raise HTTPException(status_code=500, detail="Failed to retrieve credentials from Key Vault")
-        
-        logger.info(f"Retrieved credentials from Key Vault for user: {current_user.email}")
-        logger.info(f"Client ID length: {len(client_id) if client_id else 0}")
-        logger.info(f"Client Secret length: {len(client_secret) if client_secret else 0}")
-        
-        # Get access token from Starlink
-        async with httpx.AsyncClient() as client:
-            logger.info("Attempting to get Starlink access token...")
-            token_response = await client.post(
-                "https://starlink.com/api/auth/connect/token",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                data={
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                    "grant_type": "client_credentials",
-                },
-                timeout=10,
-            )
-            
-            if token_response.status_code != 200:
-                logger.error(f"Starlink token request failed with status: {token_response.status_code}")
-                logger.error(f"Starlink response body: {token_response.text}")
-                logger.error(f"Client ID used (first 10 chars): {client_id[:10] if client_id else 'None'}...")
-                raise HTTPException(
-                    status_code=401, 
-                    detail=f"Invalid Starlink credentials. Starlink API returned: {token_response.status_code}"
-                )
-            
-            token_data = token_response.json()
-            access_token = token_data.get("access_token")
-            
-            if not access_token:
-                raise HTTPException(status_code=500, detail="Failed to obtain access token")
-            
-            # Call Starlink API to get account info
-            account_response = await client.get(
-                "https://starlink.com/api/public/v2/account",
-                headers={"Authorization": f"Bearer {access_token}"},
-                timeout=10,
-            )
-            
-            if account_response.status_code != 200:
-                logger.error(f"Starlink account API failed: {account_response.status_code}")
-                raise HTTPException(
-                    status_code=account_response.status_code,
-                    detail="Failed to fetch account information from Starlink"
-                )
-            
-            return account_response.json()
+    kms = await get_kms_service()
     
+    client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
+    client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
+    
+    if not client_id or not client_secret:
+        logger.error(f"Failed to retrieve credentials from Key Vault for user {current_user.email}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve Starlink credentials")
+    
+    return StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+
+
+# ==================== ACCOUNT ENDPOINTS ====================
+
+@router.get("/starlink/account")
+async def get_account_info(current_user: User = Depends(get_current_user)):
+    """Get account information"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_account()
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching Starlink account: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        logger.error(f"Error fetching account info: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/starlink/account/users")
+async def get_account_users(current_user: User = Depends(get_current_user)):
+    """List all users on the account"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_account_users()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching account users: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/starlink/account/users")
+async def add_account_user(
+    user_data: Dict[str, Any] = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Add a new user to the account"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.add_account_user(user_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding account user: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/starlink/account/users/{user_id}")
+async def remove_account_user(
+    user_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Remove a user from the account"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.remove_account_user(user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing account user: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== DEVICE ENDPOINTS ====================
+
+@router.get("/starlink/devices")
+async def list_devices(current_user: User = Depends(get_current_user)):
+    """List all devices on the account"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.list_devices()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing devices: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/starlink/devices/{device_id}")
+async def get_device(
+    device_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get specific device information"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_device(device_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching device: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/starlink/devices/{device_id}/status")
+async def get_device_status(
+    device_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get device status"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_device_status(device_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching device status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/starlink/devices/{device_id}/location")
+async def get_device_location(
+    device_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get device location"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_device_location(device_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching device location: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/starlink/devices/{device_id}/diagnostics")
+async def get_device_diagnostics(
+    device_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get device diagnostics"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_device_diagnostics(device_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching device diagnostics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== TELEMETRY & STATISTICS ENDPOINTS ====================
 
 @router.get("/starlink/telemetry")
-async def get_starlink_telemetry(current_user: User = Depends(get_current_user)):
-    """
-    Get Starlink telemetry data for the authenticated customer.
-    Fetches credentials from Key Vault and calls Starlink API.
-    """
+async def get_telemetry(
+    device_id: Optional[str] = Query(None, description="Filter by device ID"),
+    current_user: User = Depends(get_current_user)
+):
+    """Get real-time telemetry data"""
     try:
-        # Get credentials from Key Vault using secret names stored in user record
-        kms = await get_kms_service()
-        
-        client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
-        client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
-        
-        if not client_id or not client_secret:
-            raise HTTPException(status_code=500, detail="Failed to retrieve credentials from Key Vault")
-        
-        # Get access token from Starlink
-        async with httpx.AsyncClient() as client:
-            token_response = await client.post(
-                "https://starlink.com/api/auth/connect/token",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                data={
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                    "grant_type": "client_credentials",
-                },
-                timeout=10,
-            )
-            
-            if token_response.status_code != 200:
-                logger.error(f"Starlink token request failed: {token_response.status_code}")
-                raise HTTPException(status_code=401, detail="Invalid Starlink credentials")
-            
-            token_data = token_response.json()
-            access_token = token_data.get("access_token")
-            
-            if not access_token:
-                raise HTTPException(status_code=500, detail="Failed to obtain access token")
-            
-            # Call Starlink API to get telemetry
-            telemetry_response = await client.get(
-                "https://starlink.com/api/public/v2/telemetry",
-                headers={"Authorization": f"Bearer {access_token}"},
-                timeout=10,
-            )
-            
-            if telemetry_response.status_code != 200:
-                logger.error(f"Starlink telemetry API failed: {telemetry_response.status_code}")
-                raise HTTPException(
-                    status_code=telemetry_response.status_code,
-                    detail="Failed to fetch telemetry data from Starlink"
-                )
-            
-            return telemetry_response.json()
-    
+        service = await get_starlink_service(current_user)
+        return await service.get_telemetry(device_id)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching Starlink telemetry: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        logger.error(f"Error fetching telemetry: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/starlink/statistics")
+async def get_statistics(
+    device_id: Optional[str] = Query(None, description="Filter by device ID"),
+    start_time: Optional[str] = Query(None, description="Start time (ISO 8601)"),
+    end_time: Optional[str] = Query(None, description="End time (ISO 8601)"),
+    current_user: User = Depends(get_current_user)
+):
+    """Get historical statistics"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_statistics(device_id, start_time, end_time)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching statistics: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== TASK MANAGEMENT ENDPOINTS ====================
+
+@router.get("/starlink/tasks")
+async def list_tasks(
+    device_id: Optional[str] = Query(None, description="Filter by device ID"),
+    current_user: User = Depends(get_current_user)
+):
+    """List all tasks"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.list_tasks(device_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing tasks: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/starlink/tasks")
+async def create_task(
+    task_data: Dict[str, Any] = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new task"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.create_task(task_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating task: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/starlink/tasks/{task_id}")
+async def get_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get task status"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_task(task_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching task: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/starlink/tasks/{task_id}")
+async def cancel_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Cancel a task"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.cancel_task(task_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error canceling task: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== NETWORK CONFIGURATION ENDPOINTS ====================
+
+@router.get("/starlink/network/config/{device_id}")
+async def get_network_config(
+    device_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get network configuration"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_network_config(device_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching network config: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/starlink/network/config/{device_id}")
+async def update_network_config(
+    device_id: str,
+    config: Dict[str, Any] = Body(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Update network configuration"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.update_network_config(device_id, config)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating network config: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== ALERTS & NOTIFICATIONS ENDPOINTS ====================
+
+@router.get("/starlink/alerts")
+async def get_alerts(
+    device_id: Optional[str] = Query(None, description="Filter by device ID"),
+    current_user: User = Depends(get_current_user)
+):
+    """Get alerts"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_alerts(device_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching alerts: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/starlink/alerts/{alert_id}/acknowledge")
+async def acknowledge_alert(
+    alert_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Acknowledge an alert"""
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.acknowledge_alert(alert_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error acknowledging alert: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

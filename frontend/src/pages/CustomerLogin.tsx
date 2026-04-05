@@ -25,8 +25,8 @@ const CustomerLogin: React.FC = () => {
 
     try {
       const response = await loginCustomer(formData.email, formData.password);
-      // Redirect to customer dashboard on successful login
-      navigate('/customer/dashboard');
+      // Redirect to customer portal on successful login
+      navigate('/customer/portal');
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Login failed. Please check your credentials.';
       setError(errorMessage);

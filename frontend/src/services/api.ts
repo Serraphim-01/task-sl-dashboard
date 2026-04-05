@@ -89,4 +89,84 @@ export const deleteUser = async (userId: number) => {
   return response.data;
 };
 
+// ==================== STARLINK V2 API ENDPOINTS (Customer - Read Only) ====================
+
+// Account endpoints
+export const getAccountInfo = async () => {
+  const response = await api.get('/customer/starlink/account');
+  return response.data;
+};
+
+export const getAccountUsers = async () => {
+  const response = await api.get('/customer/starlink/account/users');
+  return response.data;
+};
+
+// Device endpoints
+export const listDevices = async () => {
+  const response = await api.get('/customer/starlink/devices');
+  return response.data;
+};
+
+export const getDevice = async (deviceId: string) => {
+  const response = await api.get(`/customer/starlink/devices/${deviceId}`);
+  return response.data;
+};
+
+export const getDeviceStatus = async (deviceId: string) => {
+  const response = await api.get(`/customer/starlink/devices/${deviceId}/status`);
+  return response.data;
+};
+
+export const getDeviceLocation = async (deviceId: string) => {
+  const response = await api.get(`/customer/starlink/devices/${deviceId}/location`);
+  return response.data;
+};
+
+export const getDeviceDiagnostics = async (deviceId: string) => {
+  const response = await api.get(`/customer/starlink/devices/${deviceId}/diagnostics`);
+  return response.data;
+};
+
+// Telemetry & Statistics
+export const getTelemetry = async (deviceId?: string) => {
+  const params = deviceId ? { deviceId } : {};
+  const response = await api.get('/customer/starlink/telemetry', { params });
+  return response.data;
+};
+
+export const getStatistics = async (deviceId?: string, startTime?: string, endTime?: string) => {
+  const params: any = {};
+  if (deviceId) params.deviceId = deviceId;
+  if (startTime) params.startTime = startTime;
+  if (endTime) params.endTime = endTime;
+  const response = await api.get('/customer/starlink/statistics', { params });
+  return response.data;
+};
+
+// Tasks (View Only)
+export const listTasks = async (deviceId?: string) => {
+  const params = deviceId ? { deviceId } : {};
+  const response = await api.get('/customer/starlink/tasks', { params });
+  return response.data;
+};
+
+export const getTask = async (taskId: string) => {
+  const response = await api.get(`/customer/starlink/tasks/${taskId}`);
+  return response.data;
+};
+
+// Network Configuration (View Only)
+export const getNetworkConfig = async (deviceId: string) => {
+  const response = await api.get(`/customer/starlink/network/config/${deviceId}`);
+  return response.data;
+};
+
+// Alerts (View Only)
+export const getAlerts = async (deviceId?: string) => {
+  const params = deviceId ? { deviceId } : {};
+  const response = await api.get('/customer/starlink/alerts', { params });
+  return response.data;
+};
+
 export default api;

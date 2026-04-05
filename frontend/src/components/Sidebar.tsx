@@ -13,7 +13,7 @@ const adminNavItems = [
 
 // Customer navigation items
 const customerNavItems = [
-  { path: '/customer/dashboard', label: 'My Dashboard' },
+  { path: '/customer/portal', label: 'Customer Portal' },
 ];
 
 const Sidebar: React.FC = () => {
