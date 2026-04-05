@@ -27,7 +27,7 @@ const DbTestButton: React.FC = () => {
       <button
         onClick={testConnection}
         disabled={loading}
-        className="w-full py-3 bg-starlink-light text-starlink-text border-none rounded font-bold cursor-pointer hover:bg-starlink-gray transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 bg-starlink-dark text-white border border-gray-400 font-bold cursor-pointer hover:bg-starlink-gray transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-center"
       >
         {loading ? 'Testing DB...' : 'Test Database Connection'}
       </button>

@@ -1,9 +1,8 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import AdminRoute from './components/AdminRoute.tsx';
-import Sidebar from './components/Sidebar.tsx';
 import Dashboard from './pages/Dashboard.tsx';
 import AccountInfo from './pages/AccountInfo.tsx';
 import DeviceCommands from './pages/DeviceCommands.tsx';
@@ -17,42 +16,45 @@ import UserManagement from './pages/UserManagement.tsx';
 import AdminLogin from './pages/AdminLogin.tsx';
 import CustomerLogin from './pages/CustomerLogin.tsx';
 import CustomerPortal from './pages/CustomerPortal.tsx';
+import AdminPortal from './pages/AdminPortal.tsx';
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="flex min-h-screen bg-starlink-dark">
-          <Sidebar />
-          <main className="flex-1 ml-[280px] bg-starlink-dark min-h-screen">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/account" element={<AccountInfo />} />
-              <Route path="/device-commands" element={<DeviceCommands />} />
-              <Route path="/device-config-assignment" element={<DeviceConfigAssignment />} />
-              <Route path="/device-management" element={<DeviceManagement />} />
-              <Route path="/device-telemetry" element={<DeviceTelemetry />} />
-              <Route path="/service-accounts" element={<ServiceAccounts />} />
-              <Route path="/service-plan" element={<ServicePlan />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/customers" element={
-                <AdminRoute>
-                  <AdminCustomerForm />
-                </AdminRoute>
-              } />
-              <Route path="/admin/users" element={
-                <AdminRoute>
-                  <UserManagement />
-                </AdminRoute>
-              } />
-              <Route path="/login" element={<CustomerLogin />} />
-              <Route path="/customer/portal/*" element={
-                <ProtectedRoute>
-                  <CustomerPortal />
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </main>
+        <div className="min-h-screen bg-starlink-dark">
+          <Routes>
+            {/* Default route - redirect to customer login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            
+            {/* Login routes */}
+            <Route path="/login" element={<CustomerLogin />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            
+            {/* Legacy routes (kept for backward compatibility) */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/account" element={<AccountInfo />} />
+            <Route path="/device-commands" element={<DeviceCommands />} />
+            <Route path="/device-config-assignment" element={<DeviceConfigAssignment />} />
+            <Route path="/device-management" element={<DeviceManagement />} />
+            <Route path="/device-telemetry" element={<DeviceTelemetry />} />
+            <Route path="/service-accounts" element={<ServiceAccounts />} />
+            <Route path="/service-plan" element={<ServicePlan />} />
+            
+            {/* Admin Portal with sidebar */}
+            <Route path="/admin/*" element={
+              <AdminRoute>
+                <AdminPortal />
+              </AdminRoute>
+            } />
+            
+            {/* Customer Portal with sidebar */}
+            <Route path="/customer/portal/*" element={
+              <ProtectedRoute>
+                <CustomerPortal />
+              </ProtectedRoute>
+            } />
+          </Routes>
         </div>
       </Router>
     </AuthProvider>

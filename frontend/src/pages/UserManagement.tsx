@@ -57,100 +57,73 @@ const UserManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h2>Loading users...</h2>
+      <div className="p-10 text-center">
+        <h2 className="text-xl text-starlink-text">Loading users...</h2>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2>User Management</h2>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
+    <div className="p-10 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-4 text-starlink-text">User Management</h2>
+      <p className="text-starlink-text-secondary mb-8">
         Manage all users in the system. Deleting a user removes them from both the database and Azure Key Vault.
       </p>
 
       {message && (
         <div
-          style={{
-            padding: '10px',
-            marginBottom: '20px',
-            borderRadius: '4px',
-            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
-            color: message.type === 'success' ? '#155724' : '#721c24',
-          }}
+          className={`p-4 mb-6 rounded border ${
+            message.type === 'success' 
+              ? 'bg-green-900/50 border-green-700 text-green-200' 
+              : 'bg-red-900/50 border-red-700 text-red-200'
+          }`}
         >
           {message.text}
         </div>
       )}
 
       {error && (
-        <div
-          style={{
-            padding: '10px',
-            marginBottom: '20px',
-            borderRadius: '4px',
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-          }}
-        >
+        <div className="p-4 mb-6 bg-red-900/50 border border-red-700 text-red-200 rounded">
           Error: {error}
         </div>
       )}
 
       {users.length === 0 ? (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-          No users found. Create your first customer from the "Manage Customers" page.
+        <div className="card text-center py-10">
+          <p className="text-starlink-text-secondary text-lg">No users found. Create your first customer from the "Manage Customers" page.</p>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div className="card overflow-hidden">
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>ID</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Email</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Enterprise</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Role</th>
-                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Created</th>
-                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>Actions</th>
+              <tr className="bg-starlink-light border-b-2 border-starlink-border">
+                <th className="p-4 text-left text-starlink-text font-semibold">ID</th>
+                <th className="p-4 text-left text-starlink-text font-semibold">Email</th>
+                <th className="p-4 text-left text-starlink-text font-semibold">Enterprise</th>
+                <th className="p-4 text-left text-starlink-text font-semibold">Role</th>
+                <th className="p-4 text-left text-starlink-text font-semibold">Created</th>
+                <th className="p-4 text-center text-starlink-text font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.user_id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '12px' }}>{user.user_id}</td>
-                  <td style={{ padding: '12px' }}>{user.email}</td>
-                  <td style={{ padding: '12px' }}>{user.enterprise_name}</td>
-                  <td style={{ padding: '12px' }}>
-                    <span
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: user.is_admin ? '#007bff' : '#28a745',
-                        color: 'white',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                      }}
-                    >
+                <tr key={user.user_id} className="border-b border-starlink-border hover:bg-starlink-light/50 transition-colors">
+                  <td className="p-4 text-starlink-text">{user.user_id}</td>
+                  <td className="p-4 text-starlink-text">{user.email}</td>
+                  <td className="p-4 text-starlink-text">{user.enterprise_name}</td>
+                  <td className="p-4">
+                    <span className="btn-primary py-1 px-3 text-xs inline-block">
                       {user.is_admin ? 'ADMIN' : 'CUSTOMER'}
                     </span>
                   </td>
-                  <td style={{ padding: '12px' }}>
+                  <td className="p-4 text-starlink-text">
                     {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
+                  <td className="p-4 text-center">
                     <button
                       onClick={() => handleDeleteUser(user.user_id, user.email)}
                       disabled={deletingUserId === user.user_id}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: deletingUserId === user.user_id ? '#ccc' : '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: deletingUserId === user.user_id ? 'not-allowed' : 'pointer',
-                        fontSize: '14px',
-                      }}
+                      className="btn-primary py-2 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {deletingUserId === user.user_id ? 'Deleting...' : 'Delete'}
                     </button>
@@ -162,18 +135,10 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      <div style={{ marginTop: '20px', textAlign: 'center' }}>
+      <div className="mt-8 text-center">
         <button
           onClick={fetchUsers}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '16px',
-          }}
+          className="btn-primary py-3 px-6 text-base"
         >
           Refresh List
         </button>

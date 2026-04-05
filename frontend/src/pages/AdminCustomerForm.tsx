@@ -46,26 +46,24 @@ const AdminCustomerForm: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px' }}>
-      <h2>Create New Customer</h2>
+    <div className="p-10 max-w-3xl mx-auto">
+      <h2 className="text-3xl font-bold mb-8 text-starlink-text">Create New Customer</h2>
       
       {message && (
         <div
-          style={{
-            padding: '10px',
-            marginBottom: '20px',
-            borderRadius: '4px',
-            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
-            color: message.type === 'success' ? '#155724' : '#721c24',
-          }}
+          className={`p-4 mb-6 rounded border ${
+            message.type === 'success' 
+              ? 'bg-green-900/50 border-green-700 text-green-200' 
+              : 'bg-red-900/50 border-red-700 text-red-200'
+          }`}
         >
           {message.text}
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block mb-2 font-semibold text-starlink-text">
             Email:
           </label>
           <input
@@ -74,12 +72,12 @@ const AdminCustomerForm: React.FC = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            className="input-field"
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <div>
+          <label className="block mb-2 font-semibold text-starlink-text">
             Enterprise Name:
           </label>
           <input
@@ -88,12 +86,12 @@ const AdminCustomerForm: React.FC = () => {
             value={formData.enterprise_name}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            className="input-field"
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <div>
+          <label className="block mb-2 font-semibold text-starlink-text">
             Starlink Client ID:
           </label>
           <input
@@ -102,12 +100,12 @@ const AdminCustomerForm: React.FC = () => {
             value={formData.starlink_client_id}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            className="input-field"
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <div>
+          <label className="block mb-2 font-semibold text-starlink-text">
             Starlink Client Secret:
           </label>
           <input
@@ -116,12 +114,12 @@ const AdminCustomerForm: React.FC = () => {
             value={formData.starlink_client_secret}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            className="input-field"
           />
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <div>
+          <label className="block mb-2 font-semibold text-starlink-text">
             Password:
           </label>
           <input
@@ -131,15 +129,15 @@ const AdminCustomerForm: React.FC = () => {
             onChange={handleChange}
             required
             minLength={8}
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            className="input-field"
           />
-          <small style={{ color: '#666' }}>
+          <small className="text-starlink-text-muted mt-1 block">
             Must be at least 8 characters with uppercase, lowercase, and digit
           </small>
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+        <div>
+          <label className="block mb-2 font-semibold text-starlink-text">
             Confirm Password:
           </label>
           <input
@@ -148,22 +146,14 @@ const AdminCustomerForm: React.FC = () => {
             value={formData.confirm_password}
             onChange={handleChange}
             required
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            className="input-field"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: loading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
-          }}
+          className="btn-primary w-full py-3 text-base"
         >
           {loading ? 'Creating...' : 'Create Customer'}
         </button>

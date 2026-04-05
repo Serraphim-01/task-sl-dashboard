@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { FaUserShield } from 'react-icons/fa';
 
 const CustomerLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -37,52 +38,63 @@ const CustomerLogin: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto my-24 p-8">
-      <h2 className="text-3xl font-bold text-center mb-8 text-starlink-text">Customer Login</h2>
-      
-      {error && (
-        <div className="p-4 mb-6 rounded bg-red-900/50 border border-red-700 text-red-200">
-          {error}
-        </div>
-      )}
+    <div className="min-h-screen bg-starlink-dark flex items-center justify-center relative">
+      {/* Admin Login Icon - Top Right */}
+      <Link 
+        to="/admin/login" 
+        className="absolute top-6 right-6 text-starlink-text-muted hover:text-starlink-text transition-colors duration-200"
+        title="Admin Login"
+      >
+        <FaUserShield size={28} />
+      </Link>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label className="block mb-2 font-semibold text-starlink-text">
-            Email:
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className="input-field"
-          />
-        </div>
+      <div className="w-full max-w-md p-8 card">
+        <h2 className="text-3xl font-bold text-center mb-8 text-starlink-text">Customer Login</h2>
+        
+        {error && (
+          <div className="p-4 mb-6 rounded bg-red-900/50 border border-red-700 text-red-200">
+            {error}
+          </div>
+        )}
 
-        <div>
-          <label className="block mb-2 font-semibold text-starlink-text">
-            Password:
-          </label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className="input-field"
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block mb-2 font-semibold text-starlink-text">
+              Email:
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="input-field"
+            />
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-primary w-full py-3 text-base"
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
+          <div>
+            <label className="block mb-2 font-semibold text-starlink-text">
+              Password:
+            </label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="input-field"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full py-3 text-base"
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

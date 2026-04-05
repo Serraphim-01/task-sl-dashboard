@@ -1,25 +1,17 @@
 import React, { useState } from 'react';
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import AccountInfo from './AccountInfo.tsx';
-import DeviceList from './DeviceList.tsx';
-import TelemetryDashboard from './TelemetryDashboard.tsx';
-import TaskViewer from './TaskViewer.tsx';
-import NetworkConfig from './NetworkConfig.tsx';
-import AlertsViewer from './AlertsViewer.tsx';
+import AdminCustomerForm from './AdminCustomerForm.tsx';
+import UserManagement from './UserManagement.tsx';
 
-const CustomerPortal: React.FC = () => {
+const AdminPortal: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
   const navItems = [
-    { path: '/customer/portal/account', label: 'Account Info' },
-    { path: '/customer/portal/devices', label: 'Devices' },
-    { path: '/customer/portal/telemetry', label: 'Telemetry' },
-    { path: '/customer/portal/tasks', label: 'Tasks' },
-    { path: '/customer/portal/network', label: 'Network' },
-    { path: '/customer/portal/alerts', label: 'Alerts' },
+    { path: '/admin/customers', label: 'Manage Customers' },
+    { path: '/admin/users', label: 'User Management' },
   ];
 
   const handleLogout = () => {
@@ -40,7 +32,7 @@ const CustomerPortal: React.FC = () => {
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           <h3 className={`m-0 text-lg ${sidebarOpen ? 'text-lg' : 'text-2xl'}`}>
-            {sidebarOpen ? 'Customer Portal' : 'CP'}
+            {sidebarOpen ? 'Admin Portal' : 'AP'}
           </h3>
         </div>
 
@@ -76,17 +68,13 @@ const CustomerPortal: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-starlink-darker">
         <Routes>
-          <Route path="/" element={<AccountInfo />} />
-          <Route path="/account" element={<AccountInfo />} />
-          <Route path="/devices" element={<DeviceList />} />
-          <Route path="/telemetry" element={<TelemetryDashboard />} />
-          <Route path="/tasks" element={<TaskViewer />} />
-          <Route path="/network" element={<NetworkConfig />} />
-          <Route path="/alerts" element={<AlertsViewer />} />
+          <Route path="/" element={<AdminCustomerForm />} />
+          <Route path="/customers" element={<AdminCustomerForm />} />
+          <Route path="/users" element={<UserManagement />} />
         </Routes>
       </div>
     </div>
   );
 };
 
-export default CustomerPortal;
+export default AdminPortal;
