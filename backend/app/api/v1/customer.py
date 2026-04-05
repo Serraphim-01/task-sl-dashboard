@@ -34,12 +34,19 @@ async def get_account_info(current_user: User = Depends(get_current_user)):
     """Get account information"""
     try:
         service = await get_starlink_service(current_user)
-        return await service.get_account()
+        result = await service.get_account()
+        # Return empty data if account not found
+        if not result or result == {}:
+            return {"message": "No account information available"}
+        return result
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error fetching account info: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        if "404" in error_msg and "not_found" in error_msg:
+            return {"message": "Account not found. Please verify your Starlink credentials."}
+        raise HTTPException(status_code=500, detail=f"Failed to fetch account info: {error_msg}")
 
 
 @router.get("/starlink/account/users")
@@ -94,12 +101,20 @@ async def list_devices(current_user: User = Depends(get_current_user)):
     """List all devices on the account"""
     try:
         service = await get_starlink_service(current_user)
-        return await service.list_devices()
+        result = await service.list_devices()
+        # Return empty array if no devices found
+        if not result or result == {}:
+            return {"devices": [], "message": "No devices found for this account"}
+        return result
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error listing devices: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Provide user-friendly error message
+        error_msg = str(e)
+        if "404" in error_msg and "not_found" in error_msg:
+            return {"devices": [], "message": "No devices found. Please contact support if you believe this is an error."}
+        raise HTTPException(status_code=500, detail=f"Failed to fetch devices: {error_msg}")
 
 
 @router.get("/starlink/devices/{device_id}")
@@ -176,12 +191,18 @@ async def get_telemetry(
     """Get real-time telemetry data"""
     try:
         service = await get_starlink_service(current_user)
-        return await service.get_telemetry(device_id)
+        result = await service.get_telemetry(device_id)
+        if not result or result == {}:
+            return {"message": "No telemetry data available"}
+        return result
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error fetching telemetry: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        if "404" in error_msg and "not_found" in error_msg:
+            return {"message": "No telemetry data available for this device"}
+        raise HTTPException(status_code=500, detail=f"Failed to fetch telemetry: {error_msg}")
 
 
 @router.get("/starlink/statistics")

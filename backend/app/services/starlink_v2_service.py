@@ -123,8 +123,20 @@ class StarlinkV2Service:
                         response = await client.delete(url, headers=headers, params=params, timeout=30)
                 
                 if response.status_code >= 400:
-                    logger.error(f"Starlink API error {response.status_code}: {response.text}")
-                    raise Exception(f"Starlink API error: {response.status_code} - {response.text}")
+                    error_detail = f"Starlink API error: {response.status_code} - {response.text}"
+                    logger.warning(f"Starlink API error {response.status_code}: {response.text}")
+                    
+                    # Return empty data for expected "not found" scenarios
+                    if response.status_code == 404:
+                        try:
+                            error_body = response.json()
+                            if "not_found" in error_body.get("errors", [{}])[0].get("errorMessage", ""):
+                                logger.info("Resource not found - returning empty data")
+                                return {}  # Return empty dict instead of raising exception
+                        except:
+                            pass
+                    
+                    raise Exception(error_detail)
                 
                 return response.json() if response.content else {}
                 
