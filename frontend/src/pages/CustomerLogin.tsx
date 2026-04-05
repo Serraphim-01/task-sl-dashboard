@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginCustomer } from '../services/api.ts';
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 const CustomerLogin: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -24,7 +25,7 @@ const CustomerLogin: React.FC = () => {
     setError(null);
 
     try {
-      const response = await loginCustomer(formData.email, formData.password);
+      await login(formData.email, formData.password);
       // Redirect to customer portal on successful login
       navigate('/customer/portal');
     } catch (error: any) {

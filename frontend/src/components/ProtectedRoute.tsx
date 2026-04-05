@@ -7,10 +7,10 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, redirectTo = '/admin/login' }) => {
-  const { isAdmin } = useAuth();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, redirectTo = '/login' }) => {
+  const { isAuthenticated } = useAuth();
 
-  if (!isAdmin) {
+  if (!isAuthenticated) {
     return <Navigate to={redirectTo} replace />;
   }
 

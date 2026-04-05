@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
+import AdminRoute from './components/AdminRoute.tsx';
 import Sidebar from './components/Sidebar.tsx';
 import Dashboard from './pages/Dashboard.tsx';
 import AccountInfo from './pages/AccountInfo.tsx';
@@ -35,14 +36,14 @@ function App() {
               <Route path="/service-plan" element={<ServicePlan />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/customers" element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <AdminCustomerForm />
-                </ProtectedRoute>
+                </AdminRoute>
               } />
               <Route path="/admin/users" element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <UserManagement />
-                </ProtectedRoute>
+                </AdminRoute>
               } />
               <Route path="/login" element={<CustomerLogin />} />
               <Route path="/customer/portal/*" element={

@@ -17,7 +17,7 @@ const customerNavItems = [
 ];
 
 const Sidebar: React.FC = () => {
-  const { isAdmin, logout } = useAuth();
+  const { isAdmin, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -34,95 +34,109 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="nav">
-        {/* Admin Section */}
-        <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
-          <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>ADMIN</h4>
-          <ul>
-            {isAdmin ? (
-              <>
-                {adminNavItems.map((item) => (
-                  <li key={item.path}>
-                    <NavLink
-                      to={item.path}
-                      className={({ isActive }) => (isActive ? 'active' : '')}
-                    >
-                      {item.label}
-                    </NavLink>
-                  </li>
-                ))}
-                <li>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '10px 15px',
-                      color: '#fff',
-                      cursor: 'pointer',
-                    }}
+        {/* Admin Section - Only show for admins */}
+        {isAdmin && (
+          <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
+            <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>ADMIN</h4>
+            <ul>
+              {adminNavItems.map((item) => (
+                <li key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) => (isActive ? 'active' : '')}
                   >
-                    Logout
-                  </button>
+                    {item.label}
+                  </NavLink>
                 </li>
-              </>
-            ) : (
+              ))}
               <li>
-                <NavLink
-                  to="/admin/login"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '10px 15px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                  }}
                 >
-                  Admin Login
-                </NavLink>
+                  Logout
+                </button>
               </li>
-            )}
-          </ul>
-        </div>
-
-        {/* Customer Section */}
-        <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
-          <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>CUSTOMER</h4>
-          <ul>
-            {customerNavItems.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                >
-                  {item.label}
-                </NavLink>
-              </li>
-            ))}
-            <li>
-              <NavLink
-                to="/login"
-                className={({ isActive }) => (isActive ? 'active' : '')}
-              >
-                Login
-              </NavLink>
-            </li>
-          </ul>
-        </div>
-
-        {/* Logout if authenticated (non-admin) */}
-        {!isAdmin && (
-          <div style={{ marginTop: '20px', padding: '10px 15px' }}>
-            <button
-              onClick={handleLogout}
-              style={{
-                background: 'none',
-                border: 'none',
-                width: '100%',
-                textAlign: 'left',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
-            >
-              Logout
-            </button>
+            </ul>
           </div>
+        )}
+
+        {/* Customer Section - Only show for customers */}
+        {!isAdmin && isAuthenticated && (
+          <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
+            <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>CUSTOMER</h4>
+            <ul>
+              {customerNavItems.map((item) => (
+                <li key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
+                    {item.label}
+                  </NavLink>
+                </li>
+              ))}
+              <li>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '10px 15px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Logout
+                </button>
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* Guest Section - Show login options when not authenticated */}
+        {!isAuthenticated && (
+          <>
+            {/* Admin Section */}
+            <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
+              <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>ADMIN</h4>
+              <ul>
+                <li>
+                  <NavLink
+                    to="/admin/login"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
+                    Admin Login
+                  </NavLink>
+                </li>
+              </ul>
+            </div>
+
+            {/* Customer Section */}
+            <div style={{ marginTop: '20px', borderTop: '1px solid #444', paddingTop: '10px' }}>
+              <h4 style={{ color: '#aaa', fontSize: '12px', marginBottom: '10px', paddingLeft: '15px' }}>CUSTOMER</h4>
+              <ul>
+                <li>
+                  <NavLink
+                    to="/login"
+                    className={({ isActive }) => (isActive ? 'active' : '')}
+                  >
+                    Customer Login
+                  </NavLink>
+                </li>
+              </ul>
+            </div>
+          </>
         )}
       </nav>
 
