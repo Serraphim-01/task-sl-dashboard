@@ -1,5 +1,5 @@
 # backend/app/api/v1/auth.py
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.services.auth_service import StarlinkAuth
 from app.database import User
@@ -22,6 +22,13 @@ class LoginResponse(BaseModel):
     message: str
     user_id: int
     email: str
+    is_admin: bool
+
+
+class UserResponse(BaseModel):
+    user_id: int
+    email: str
+    enterprise_name: str
     is_admin: bool
 
 
@@ -70,12 +77,28 @@ async def login(request: LoginRequest, response: Response):
         db.close()
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())) -> User:
+def get_current_user(
+    request: Request,
+    access_token: Optional[str] = Cookie(None)
+) -> User:
     """
     Dependency to get current authenticated user from JWT token.
-    Extracts token from Authorization header.
+    Tries to get token from Authorization header first, then from cookie.
     """
-    token = credentials.credentials
+    token = None
+    
+    # Try to get token from Authorization header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+    
+    # If not in header, try cookie
+    if not token and access_token:
+        token = access_token
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
     payload = verify_token(token)
     
     if payload is None:
@@ -102,6 +125,19 @@ def get_current_admin_user(current_user: User = Depends(get_current_user)) -> Us
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """
+    Get current authenticated user's information.
+    """
+    return UserResponse(
+        user_id=current_user.id,
+        email=current_user.email,
+        enterprise_name=current_user.enterprise_name,
+        is_admin=current_user.is_admin
+    )
 
 @router.get("/kms-test")
 async def kms_test():

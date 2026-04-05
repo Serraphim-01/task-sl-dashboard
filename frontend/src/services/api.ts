@@ -54,4 +54,27 @@ export const getCustomerTelemetry = async () => {
   return response.data;
 };
 
+// Admin login (same endpoint as customer, role determined by backend)
+export const loginAdmin = async (email: string, password: string) => {
+  const response = await api.post('/auth/login', { email, password });
+  return response.data;
+};
+
+// Logout
+export const logout = async () => {
+  // Backend logout endpoint if exists, else just clear token
+  try {
+    await api.post('/auth/logout');
+  } catch (e) {
+    // Ignore if no logout endpoint
+  }
+  Cookies.remove('access_token');
+};
+
+// Get current user info
+export const getCurrentUser = async () => {
+  const response = await api.get('/auth/me');
+  return response.data;
+};
+
 export default api;
