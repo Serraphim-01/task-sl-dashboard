@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: starlink_db
+    environment:
+      POSTGRES_USER: ${DB_USER:-starlink}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-starlink_dashboard}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-starlink} -d ${DB_NAME:-starlink_dashboard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: starlink_backend
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-starlink}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-starlink_dashboard}
+      - VAULT_URL=${VAULT_URL}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}      # Optional for local dev with Azure
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app   # For live code reload during development
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build: ./frontend
+    container_name: starlink_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    # For development, you can also use a dev server with hot reload
+    # To enable development mode, override command below
+    # command: npm start
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -165,11 +165,210 @@ async def test_customer_login_and_endpoints():
                 print(f"   ⚠️  Status: {response.status_code}")
         except Exception as e:
             print(f"   ❌ Error: {str(e)}")
+        
+        # Step 8: Test Account Users endpoint
+        print("\n8️⃣  Testing /customer/starlink/account/users endpoint...")
+        try:
+            response = await client.get(f"{BASE_URL}/customer/starlink/account/users")
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                print("   ✅ Endpoint accessible!")
+                if "users" in data:
+                    print(f"   👥 Users count: {len(data['users'])}")
+            else:
+                print(f"   ⚠️  Status: {response.status_code}")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
+        
+        # Step 9: Test Get Device endpoint (using first device ID if available)
+        print("\n9️⃣  Testing /customer/starlink/devices/{{device_id}} endpoint...")
+        try:
+            # First get devices to find a device ID
+            devices_response = await client.get(f"{BASE_URL}/customer/starlink/devices")
+            if devices_response.status_code == 200:
+                devices_data = devices_response.json()
+                devices = devices_data.get("devices", [])
+                
+                if len(devices) > 0:
+                    device_id = devices[0].get("id") or devices[0].get("deviceId")
+                    if device_id:
+                        response = await client.get(f"{BASE_URL}/customer/starlink/devices/{device_id}")
+                        print(f"   Status Code: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            print("   ✅ Endpoint accessible!")
+                            print(f"   📡 Device ID: {device_id}")
+                        else:
+                            print(f"   ⚠️  Status: {response.status_code}")
+                    else:
+                        print("   ℹ️  Skipped - No device ID found")
+                else:
+                    print("   ℹ️  Skipped - No devices available to test")
+            else:
+                print("   ℹ️  Skipped - Could not retrieve devices list")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
+        
+        # Step 10: Test Device Status endpoint
+        print("\n🔟 Testing /customer/starlink/devices/{{device_id}}/status endpoint...")
+        try:
+            devices_response = await client.get(f"{BASE_URL}/customer/starlink/devices")
+            if devices_response.status_code == 200:
+                devices_data = devices_response.json()
+                devices = devices_data.get("devices", [])
+                
+                if len(devices) > 0:
+                    device_id = devices[0].get("id") or devices[0].get("deviceId")
+                    if device_id:
+                        response = await client.get(f"{BASE_URL}/customer/starlink/devices/{device_id}/status")
+                        print(f"   Status Code: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            print("   ✅ Endpoint accessible!")
+                        else:
+                            print(f"   ⚠️  Status: {response.status_code}")
+                    else:
+                        print("   ℹ️  Skipped - No device ID found")
+                else:
+                    print("   ℹ️  Skipped - No devices available to test")
+            else:
+                print("   ℹ️  Skipped - Could not retrieve devices list")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
+        
+        # Step 11: Test Device Location endpoint
+        print("\n1️⃣1️⃣ Testing /customer/starlink/devices/{{device_id}}/location endpoint...")
+        try:
+            devices_response = await client.get(f"{BASE_URL}/customer/starlink/devices")
+            if devices_response.status_code == 200:
+                devices_data = devices_response.json()
+                devices = devices_data.get("devices", [])
+                
+                if len(devices) > 0:
+                    device_id = devices[0].get("id") or devices[0].get("deviceId")
+                    if device_id:
+                        response = await client.get(f"{BASE_URL}/customer/starlink/devices/{device_id}/location")
+                        print(f"   Status Code: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            print("   ✅ Endpoint accessible!")
+                        else:
+                            print(f"   ⚠️  Status: {response.status_code}")
+                    else:
+                        print("   ℹ️  Skipped - No device ID found")
+                else:
+                    print("   ℹ️  Skipped - No devices available to test")
+            else:
+                print("   ℹ️  Skipped - Could not retrieve devices list")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
+        
+        # Step 12: Test Device Diagnostics endpoint
+        print("\n1️⃣2️⃣ Testing /customer/starlink/devices/{{device_id}}/diagnostics endpoint...")
+        try:
+            devices_response = await client.get(f"{BASE_URL}/customer/starlink/devices")
+            if devices_response.status_code == 200:
+                devices_data = devices_response.json()
+                devices = devices_data.get("devices", [])
+                
+                if len(devices) > 0:
+                    device_id = devices[0].get("id") or devices[0].get("deviceId")
+                    if device_id:
+                        response = await client.get(f"{BASE_URL}/customer/starlink/devices/{device_id}/diagnostics")
+                        print(f"   Status Code: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            print("   ✅ Endpoint accessible!")
+                        else:
+                            print(f"   ⚠️  Status: {response.status_code}")
+                    else:
+                        print("   ℹ️  Skipped - No device ID found")
+                else:
+                    print("   ℹ️  Skipped - No devices available to test")
+            else:
+                print("   ℹ️  Skipped - Could not retrieve devices list")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
+        
+        # Step 13: Test Statistics endpoint
+        print("\n1️⃣3️⃣ Testing /customer/starlink/statistics endpoint...")
+        try:
+            response = await client.get(f"{BASE_URL}/customer/starlink/statistics")
+            print(f"   Status Code: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                print("   ✅ Endpoint accessible!")
+                if "statistics" in data:
+                    print(f"   📊 Statistics entries: {len(data['statistics'])}")
+            else:
+                print(f"   ⚠️  Status: {response.status_code}")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
+        
+        # Step 14: Test Get Task endpoint (using first task ID if available)
+        print("\n1️⃣4️⃣ Testing /customer/starlink/tasks/{{task_id}} endpoint...")
+        try:
+            # First get tasks to find a task ID
+            tasks_response = await client.get(f"{BASE_URL}/customer/starlink/tasks")
+            if tasks_response.status_code == 200:
+                tasks_data = tasks_response.json()
+                tasks = tasks_data.get("tasks", [])
+                
+                if len(tasks) > 0:
+                    task_id = tasks[0].get("id") or tasks[0].get("taskId")
+                    if task_id:
+                        response = await client.get(f"{BASE_URL}/customer/starlink/tasks/{task_id}")
+                        print(f"   Status Code: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            print("   ✅ Endpoint accessible!")
+                            print(f"   ⚙️  Task ID: {task_id}")
+                        else:
+                            print(f"   ⚠️  Status: {response.status_code}")
+                    else:
+                        print("   ℹ️  Skipped - No task ID found")
+                else:
+                    print("   ℹ️  Skipped - No tasks available to test")
+            else:
+                print("   ℹ️  Skipped - Could not retrieve tasks list")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
+        
+        # Step 15: Test Network Config endpoint (using first device ID if available)
+        print("\n1️⃣5️⃣ Testing /customer/starlink/network/config/{{device_id}} endpoint...")
+        try:
+            devices_response = await client.get(f"{BASE_URL}/customer/starlink/devices")
+            if devices_response.status_code == 200:
+                devices_data = devices_response.json()
+                devices = devices_data.get("devices", [])
+                
+                if len(devices) > 0:
+                    device_id = devices[0].get("id") or devices[0].get("deviceId")
+                    if device_id:
+                        response = await client.get(f"{BASE_URL}/customer/starlink/network/config/{device_id}")
+                        print(f"   Status Code: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            print("   ✅ Endpoint accessible!")
+                        else:
+                            print(f"   ⚠️  Status: {response.status_code}")
+                    else:
+                        print("   ℹ️  Skipped - No device ID found")
+                else:
+                    print("   ℹ️  Skipped - No devices available to test")
+            else:
+                print("   ℹ️  Skipped - Could not retrieve devices list")
+        except Exception as e:
+            print(f"   ❌ Error: {str(e)}")
     
     print("\n" + "=" * 80)
     print("TEST COMPLETE")
     print("=" * 80)
-    print("\n📝 Notes:")
+    print("\n📝 Summary:")
+    print("   - Tested all 15 frontend-implemented endpoints")
     print("   - All endpoints should return 200 OK")
     print("   - Empty data is EXPECTED when no Starlink resources exist")
     print("   - Look for '✅ Endpoint accessible!' messages")
