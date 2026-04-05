@@ -40,15 +40,15 @@ const NetworkConfig: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2 style={{ marginBottom: '30px' }}>🌐 Network Configuration</h2>
+    <div className="p-10 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-8 text-starlink-text">Network Configuration</h2>
 
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
-        <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Select Device:</label>
+      <div className="card mb-5">
+        <label className="block mb-3 font-medium text-starlink-text">Select Device:</label>
         <select
           value={selectedDevice}
           onChange={(e) => setSelectedDevice(e.target.value)}
-          style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '16px' }}
+          className="input-field"
         >
           {devices.map((device: any) => (
             <option key={device.id} value={device.id}>
@@ -59,39 +59,22 @@ const NetworkConfig: React.FC = () => {
         <button
           onClick={fetchConfig}
           disabled={!selectedDevice || loading}
-          style={{
-            marginTop: '15px',
-            padding: '10px 20px',
-            backgroundColor: !selectedDevice || loading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: !selectedDevice || loading ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
-          }}
+          className="btn-primary mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Loading...' : 'Load Configuration'}
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: '15px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '20px' }}>
+        <div className="p-4 bg-red-900/50 border border-red-700 text-red-200 rounded mb-5">
           Error: {error}
         </div>
       )}
 
       {config && (
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ marginTop: 0, color: '#2c3e50' }}>Network Configuration</h3>
-          <pre style={{
-            backgroundColor: '#f8f9fa',
-            padding: '20px',
-            borderRadius: '4px',
-            overflow: 'auto',
-            maxHeight: '600px',
-            fontSize: '14px',
-            lineHeight: '1.6',
-          }}>
+        <div className="card">
+          <h3 className="mt-0 text-xl font-semibold text-starlink-text mb-4">Network Configuration</h3>
+          <pre className="bg-starlink-light p-5 rounded overflow-auto max-h-[600px] text-sm leading-relaxed text-starlink-text">
             {JSON.stringify(config, null, 2)}
           </pre>
         </div>

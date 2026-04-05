@@ -24,52 +24,46 @@ const TelemetryDashboard: React.FC = () => {
   };
 
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}><h2>Loading telemetry...</h2></div>;
+    return <div className="p-10 text-center"><h2 className="text-xl text-starlink-text">Loading telemetry...</h2></div>;
   }
 
   if (error) {
     return (
-      <div style={{ padding: '40px' }}>
-        <div style={{ padding: '15px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '4px' }}>
+      <div className="p-10">
+        <div className="p-4 bg-red-900/50 border border-red-700 text-red-200 rounded">
           Error: {error}
         </div>
-        <button onClick={fetchTelemetry} style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}>Retry</button>
+        <button onClick={fetchTelemetry} className="mt-5 btn-secondary">Retry</button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
-      <h2 style={{ marginBottom: '30px' }}>📊 Real-Time Telemetry</h2>
+    <div className="p-10 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-8 text-starlink-text">Real-Time Telemetry</h2>
 
-      <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+      <div className="card">
         {telemetry ? (
-          <pre style={{ 
-            backgroundColor: '#f8f9fa', 
-            padding: '20px', 
-            borderRadius: '4px', 
-            overflow: 'auto',
-            maxHeight: '600px',
-            fontSize: '14px',
-            lineHeight: '1.6',
-          }}>
-            {JSON.stringify(telemetry, null, 2)}
-          </pre>
+          // Check if it's a message response (no data available)
+          telemetry.message ? (
+            <div className="text-center py-10">
+              <p className="text-starlink-text-secondary text-lg">{telemetry.message}</p>
+              <p className="text-starlink-text-muted mt-2 text-sm">
+                Telemetry data will appear here once your Starlink devices start transmitting data.
+              </p>
+            </div>
+          ) : (
+            // Display actual telemetry data
+            <pre className="bg-starlink-light p-5 rounded overflow-auto max-h-[600px] text-sm leading-relaxed text-starlink-text">
+              {JSON.stringify(telemetry, null, 2)}
+            </pre>
+          )
         ) : (
-          <p>No telemetry data available</p>
+          <p className="text-starlink-text-secondary">No telemetry data available</p>
         )}
       </div>
 
-      <button onClick={fetchTelemetry} style={{
-        marginTop: '20px',
-        padding: '10px 20px',
-        backgroundColor: '#007bff',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '16px',
-      }}>
+      <button onClick={fetchTelemetry} className="btn-primary mt-5">
         Refresh Data
       </button>
     </div>

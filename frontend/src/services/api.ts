@@ -1,27 +1,14 @@
 import axios from 'axios';
-import Cookies from 'js-cookie';
 
 const api = axios.create({
   baseURL: 'http://localhost:8000/api/v1',  // FastAPI backend URL
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,  // Include cookies in requests
+  withCredentials: true,  // Include HTTP-only cookies in requests
 });
 
-// Add request interceptor to include JWT token in Authorization header
-api.interceptors.request.use(
-  (config) => {
-    const token = Cookies.get('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// No need for request interceptor - backend reads HTTP-only cookie automatically
 
 // Customer login
 export const loginCustomer = async (email: string, password: string) => {
@@ -68,7 +55,6 @@ export const logout = async () => {
   } catch (e) {
     // Ignore if no logout endpoint
   }
-  Cookies.remove('access_token');
 };
 
 // Get current user info

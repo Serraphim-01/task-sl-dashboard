@@ -12,10 +12,10 @@ const KmsTestButton: React.FC = () => {
     setStatus(null);
     try {
       const response = await api.get('/auth/kms-test');
-      setStatus(`✅ KMS successful! Secrets loaded. Vault logs in backend terminal.`);
+      setStatus(`KMS successful! Secrets loaded. Vault logs in backend terminal.`);
       console.log('KMS test response:', response.data);
     } catch (err: any) {
-      setError(`❌ KMS test failed: ${err.response?.data?.detail || err.message}`);
+      setError(`KMS test failed: ${err.response?.data?.detail || err.message}`);
       console.error('KMS error:', err.response?.data || err);
     } finally {
       setLoading(false);
@@ -23,30 +23,21 @@ const KmsTestButton: React.FC = () => {
   };
 
   return (
-    <div style={{ marginTop: '2rem', padding: '1rem' }}>
+    <div className="mt-8 p-4">
       <button
         onClick={testConnection}
         disabled={loading}
-        style={{
-          width: '100%',
-          padding: '0.75rem',
-          backgroundColor: '#1a1a1a',
-          color: '#ffffff',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontWeight: 'bold',
-        }}
+        className="w-full py-3 bg-starlink-light text-starlink-text border-none rounded font-bold cursor-pointer hover:bg-starlink-gray transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Testing...' : 'Test KMS Connection'}
       </button>
       {status && (
-        <div style={{ marginTop: '1rem', color: '#2e7d32', fontSize: '0.9rem' }}>
+        <div className="mt-4 text-green-600 text-sm">
           {status}
         </div>
       )}
       {error && (
-        <div style={{ marginTop: '1rem', color: '#c62828', fontSize: '0.9rem' }}>
+        <div className="mt-4 text-red-600 text-sm">
           {error}
         </div>
       )}

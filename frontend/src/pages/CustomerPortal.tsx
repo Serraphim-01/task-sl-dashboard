@@ -11,12 +11,12 @@ const CustomerPortal: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const navItems = [
-    { path: '/customer/portal/account', label: 'Account Info', icon: '👤' },
-    { path: '/customer/portal/devices', label: 'Devices', icon: '🛰️' },
-    { path: '/customer/portal/telemetry', label: 'Telemetry', icon: '📊' },
-    { path: '/customer/portal/tasks', label: 'Tasks', icon: '⚙️' },
-    { path: '/customer/portal/network', label: 'Network', icon: '🌐' },
-    { path: '/customer/portal/alerts', label: 'Alerts', icon: '🔔' },
+    { path: '/customer/portal/account', label: 'Account Info' },
+    { path: '/customer/portal/devices', label: 'Devices' },
+    { path: '/customer/portal/telemetry', label: 'Telemetry' },
+    { path: '/customer/portal/tasks', label: 'Tasks' },
+    { path: '/customer/portal/network', label: 'Network' },
+    { path: '/customer/portal/alerts', label: 'Alerts' },
   ];
 
   return (
@@ -32,7 +32,7 @@ const CustomerPortal: React.FC = () => {
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           <h3 className={`m-0 text-lg ${sidebarOpen ? 'text-lg' : 'text-2xl'}`}>
-            {sidebarOpen ? 'Customer Portal' : '📡'}
+            {sidebarOpen ? 'Customer Portal' : 'CP'}
           </h3>
         </div>
 
@@ -49,7 +49,6 @@ const CustomerPortal: React.FC = () => {
                 }`
               }
             >
-              <span className="text-xl mr-3">{item.icon}</span>
               {sidebarOpen && <span>{item.label}</span>}
             </NavLink>
           ))}

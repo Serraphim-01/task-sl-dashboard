@@ -47,21 +47,52 @@ const AccountInfo: React.FC = () => {
 
   return (
     <div className="p-10 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold mb-8 text-starlink-text">👤 Account Information</h2>
+      <h2 className="text-3xl font-bold mb-8 text-starlink-text">Account Information</h2>
 
       {/* Account Details */}
       <div className="card mb-5">
         <h3 className="mt-0 text-xl font-semibold text-starlink-text mb-4">Account Details</h3>
         {accountData ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(accountData).map(([key, value]) => (
-              <div key={key} className="p-3 bg-starlink-light rounded border border-starlink-border">
-                <strong className="text-starlink-text-muted text-xs uppercase">{key}</strong>
-                <p className="mt-1 text-base text-starlink-text">
-                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                </p>
+          <div className="space-y-4">
+            {/* Handle nested content object */}
+            {accountData.content && typeof accountData.content === 'object' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(accountData.content).map(([key, value]) => (
+                  <div key={key} className="p-4 bg-starlink-light rounded border border-starlink-border">
+                    <strong className="text-starlink-text-muted text-xs uppercase block mb-2">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </strong>
+                    <p className="text-base text-starlink-text font-medium">
+                      {Array.isArray(value) 
+                        ? value.length > 0 
+                          ? `${value.length} item(s)`
+                          : 'None'
+                        : String(value)}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              /* Fallback for flat structure */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(accountData).map(([key, value]) => (
+                  <div key={key} className="p-4 bg-starlink-light rounded border border-starlink-border">
+                    <strong className="text-starlink-text-muted text-xs uppercase block mb-2">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </strong>
+                    <p className="text-base text-starlink-text font-medium">
+                      {typeof value === 'object' && value !== null
+                        ? Array.isArray(value)
+                          ? value.length > 0 
+                            ? `${value.length} item(s)`
+                            : 'None'
+                          : JSON.stringify(value)
+                        : String(value)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-starlink-text-secondary">No account data available</p>

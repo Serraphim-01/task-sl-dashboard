@@ -139,6 +139,20 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         is_admin=current_user.is_admin
     )
 
+
+@router.post("/logout")
+async def logout(response: Response):
+    """
+    Logout user by clearing the HTTP-only cookie.
+    """
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        secure=False,  # Set to True in production with HTTPS
+        samesite="strict"
+    )
+    return {"message": "Logged out successfully"}
+
 @router.get("/kms-test")
 async def kms_test():
     """
