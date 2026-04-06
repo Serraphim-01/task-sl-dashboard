@@ -1,8 +1,18 @@
-from fastapi import APIRouter, HTTPException, Depends, Query, Body
+from fastapi import APIRouter, HTTPException, Depends, Query, Body, Response
 from app.database import User
 from app.api.v1.auth import get_current_user
 from app.services.kms_service import get_kms_service
 from app.services.starlink_v2_service import StarlinkV2Service
+from app.utils.cache import (
+    cache_account_info,
+    cache_device_list,
+    cache_device_info,
+    cache_telemetry,
+    cache_tasks,
+    cache_alerts,
+    CacheConfig,
+    invalidate_user_cache
+)
 import logging
 from typing import Optional, Dict, Any
 
@@ -30,8 +40,12 @@ async def get_starlink_service(current_user: User) -> StarlinkV2Service:
 # ==================== ACCOUNT ENDPOINTS ====================
 
 @router.get("/starlink/account")
-async def get_account_info(current_user: User = Depends(get_current_user)):
-    """Get account information"""
+@cache_account_info
+async def get_account_info(
+    response: Response,
+    current_user: User = Depends(get_current_user)
+):
+    """Get account information (Cached: 5 min Layer 1, 5 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         result = await service.get_account()
@@ -50,8 +64,12 @@ async def get_account_info(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/starlink/account/users")
-async def get_account_users(current_user: User = Depends(get_current_user)):
-    """List all users on the account"""
+@cache_account_info
+async def get_account_users(
+    response: Response,
+    current_user: User = Depends(get_current_user)
+):
+    """List all users on the account (Cached: 5 min Layer 1, 5 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_account_users()
@@ -97,8 +115,12 @@ async def remove_account_user(
 # ==================== DEVICE ENDPOINTS ====================
 
 @router.get("/starlink/devices")
-async def list_devices(current_user: User = Depends(get_current_user)):
-    """List all devices on the account"""
+@cache_device_list
+async def list_devices(
+    response: Response,
+    current_user: User = Depends(get_current_user)
+):
+    """List all devices on the account (Cached: 3 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         result = await service.list_devices()
@@ -118,11 +140,13 @@ async def list_devices(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/starlink/devices/{device_id}")
+@cache_device_info
 async def get_device(
     device_id: str,
+    response: Response,
     current_user: User = Depends(get_current_user)
 ):
-    """Get specific device information"""
+    """Get specific device information (Cached: 2 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_device(device_id)
@@ -134,11 +158,13 @@ async def get_device(
 
 
 @router.get("/starlink/devices/{device_id}/status")
+@cache_device_info
 async def get_device_status(
     device_id: str,
+    response: Response,
     current_user: User = Depends(get_current_user)
 ):
-    """Get device status"""
+    """Get device status (Cached: 2 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_device_status(device_id)
@@ -150,11 +176,13 @@ async def get_device_status(
 
 
 @router.get("/starlink/devices/{device_id}/location")
+@cache_device_info
 async def get_device_location(
     device_id: str,
+    response: Response,
     current_user: User = Depends(get_current_user)
 ):
-    """Get device location"""
+    """Get device location (Cached: 2 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_device_location(device_id)
@@ -166,11 +194,13 @@ async def get_device_location(
 
 
 @router.get("/starlink/devices/{device_id}/diagnostics")
+@cache_device_info
 async def get_device_diagnostics(
     device_id: str,
+    response: Response,
     current_user: User = Depends(get_current_user)
 ):
-    """Get device diagnostics"""
+    """Get device diagnostics (Cached: 2 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_device_diagnostics(device_id)
@@ -184,11 +214,13 @@ async def get_device_diagnostics(
 # ==================== TELEMETRY & STATISTICS ENDPOINTS ====================
 
 @router.get("/starlink/telemetry")
+@cache_telemetry
 async def get_telemetry(
     device_id: Optional[str] = Query(None, description="Filter by device ID"),
+    response: Response = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get real-time telemetry data"""
+    """Get real-time telemetry data (Cached: 15s Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         result = await service.get_telemetry(device_id)
@@ -206,13 +238,15 @@ async def get_telemetry(
 
 
 @router.get("/starlink/statistics")
+@cache_telemetry
 async def get_statistics(
     device_id: Optional[str] = Query(None, description="Filter by device ID"),
     start_time: Optional[str] = Query(None, description="Start time (ISO 8601)"),
     end_time: Optional[str] = Query(None, description="End time (ISO 8601)"),
+    response: Response = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get historical statistics"""
+    """Get historical statistics (Cached: 15s Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_statistics(device_id, start_time, end_time)
@@ -226,11 +260,13 @@ async def get_statistics(
 # ==================== TASK MANAGEMENT ENDPOINTS ====================
 
 @router.get("/starlink/tasks")
+@cache_tasks
 async def list_tasks(
     device_id: Optional[str] = Query(None, description="Filter by device ID"),
+    response: Response = None,
     current_user: User = Depends(get_current_user)
 ):
-    """List all tasks"""
+    """List all tasks (Cached: 1 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.list_tasks(device_id)
@@ -246,10 +282,13 @@ async def create_task(
     task_data: Dict[str, Any] = Body(...),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new task"""
+    """Create a new task (Not cached - modifies data)"""
     try:
         service = await get_starlink_service(current_user)
-        return await service.create_task(task_data)
+        result = await service.create_task(task_data)
+        # Invalidate tasks cache after creating a task
+        await invalidate_user_cache(current_user.id, 'tasks')
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -258,11 +297,13 @@ async def create_task(
 
 
 @router.get("/starlink/tasks/{task_id}")
+@cache_tasks
 async def get_task(
     task_id: str,
+    response: Response = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get task status"""
+    """Get task status (Cached: 1 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_task(task_id)
@@ -278,10 +319,13 @@ async def cancel_task(
     task_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Cancel a task"""
+    """Cancel a task (Not cached - modifies data)"""
     try:
         service = await get_starlink_service(current_user)
-        return await service.cancel_task(task_id)
+        result = await service.cancel_task(task_id)
+        # Invalidate tasks cache after canceling
+        await invalidate_user_cache(current_user.id, 'tasks')
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -292,11 +336,13 @@ async def cancel_task(
 # ==================== NETWORK CONFIGURATION ENDPOINTS ====================
 
 @router.get("/starlink/network/config/{device_id}")
+@cache_device_info
 async def get_network_config(
     device_id: str,
+    response: Response,
     current_user: User = Depends(get_current_user)
 ):
-    """Get network configuration"""
+    """Get network configuration (Cached: 2 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_network_config(device_id)
@@ -313,10 +359,13 @@ async def update_network_config(
     config: Dict[str, Any] = Body(...),
     current_user: User = Depends(get_current_user)
 ):
-    """Update network configuration"""
+    """Update network configuration (Not cached - modifies data)"""
     try:
         service = await get_starlink_service(current_user)
-        return await service.update_network_config(device_id, config)
+        result = await service.update_network_config(device_id, config)
+        # Invalidate device cache after updating config
+        await invalidate_user_cache(current_user.id, 'device')
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -327,11 +376,13 @@ async def update_network_config(
 # ==================== ALERTS & NOTIFICATIONS ENDPOINTS ====================
 
 @router.get("/starlink/alerts")
+@cache_alerts
 async def get_alerts(
     device_id: Optional[str] = Query(None, description="Filter by device ID"),
+    response: Response = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Get alerts"""
+    """Get alerts (Cached: 1 min Layer 1, 1 min Layer 2)"""
     try:
         service = await get_starlink_service(current_user)
         return await service.get_alerts(device_id)

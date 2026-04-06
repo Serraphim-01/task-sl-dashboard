@@ -110,6 +110,20 @@ try:
     
     print("\n✅ All migrations completed successfully!")
     
+    # Reset all is_online flags to False on server startup
+    # This ensures accurate online status tracking (customers who closed browser without logout)
+    print("\nResetting online status for all users...")
+    db.execute(text("""
+        UPDATE users 
+        SET is_online = FALSE
+        WHERE is_online = TRUE
+    """))
+    db.commit()
+    reset_count = db.execute(text("SELECT COUNT(*) FROM users WHERE is_online = FALSE")).scalar()
+    print(f"✓ Reset is_online to FALSE for all users")
+    
+    print("\n✅ All migrations completed successfully!")
+    
 except Exception as e:
     db.rollback()
     print(f"\n❌ Migration error: {e}")

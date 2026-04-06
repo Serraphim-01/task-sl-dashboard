@@ -64,6 +64,7 @@ async def login(request: LoginRequest, response: Response):
     """
     Authenticate customer and return JWT token in HTTP-only cookie.
     Handles both activated users and first-time password setup for unactivated users.
+    Admin users are blocked from using this endpoint.
     """
     db = SessionLocal()
     try:
@@ -72,6 +73,13 @@ async def login(request: LoginRequest, response: Response):
         
         if not user:
             raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Block admin users from customer login
+        if user.is_admin:
+            raise HTTPException(
+                status_code=403, 
+                detail="Admin accounts cannot log in through the customer portal. Please use the Admin Login portal instead."
+            )
         
         # Check if user is unactivated (no password set yet)
         if not user.hashed_password:

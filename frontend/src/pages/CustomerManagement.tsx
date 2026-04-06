@@ -84,6 +84,14 @@ const CustomerManagement: React.FC = () => {
     }
   }, [lastMessage]);
 
+  // Refresh customer list when WebSocket connects (ensures fresh status on admin login)
+  useEffect(() => {
+    if (isConnected) {
+      console.log('🔄 WebSocket connected, refreshing customer list for accurate status...');
+      fetchCustomers();
+    }
+  }, [isConnected]);
+
   const fetchCustomers = async () => {
     setLoading(true);
     setError(null);
@@ -236,7 +244,6 @@ const CustomerManagement: React.FC = () => {
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-starlink-light border-b-2 border-starlink-border">
-                <th className="p-4 text-left text-starlink-text font-semibold">ID</th>
                 <th className="p-4 text-left text-starlink-text font-semibold">Email</th>
                 <th className="p-4 text-left text-starlink-text font-semibold">Enterprise</th>
                 <th className="p-4 text-left text-starlink-text font-semibold">Status</th>
@@ -247,7 +254,6 @@ const CustomerManagement: React.FC = () => {
             <tbody>
               {customers.map((customer) => (
                 <tr key={customer.user_id} className="border-b border-starlink-border hover:bg-starlink-light/50 transition-colors">
-                  <td className="p-4 text-starlink-text">{customer.user_id}</td>
                   <td className="p-4 text-starlink-text">{customer.email}</td>
                   <td className="p-4 text-starlink-text">{customer.enterprise_name}</td>
                   <td className="p-4">

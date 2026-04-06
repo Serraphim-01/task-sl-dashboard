@@ -11,3 +11,5 @@ azure-identity
 bcrypt
 python-jose[cryptography]
 websockets
+aiocache[redis]>=0.12.0
+fastapi-utils>=0.2.1

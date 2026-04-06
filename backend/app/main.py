@@ -1,11 +1,54 @@
 from fastapi import FastAPI, Depends, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from sqlalchemy import text
 
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.api.v1 import customers_router, telemetry_router, health_router, customer_router
 from app.api.v1.auth import router as auth_router
 
-app = FastAPI(title="Starlink Partner Dashboard", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+    """
+    # Startup: Reset all is_online flags to False
+    # This ensures accurate online status tracking
+    print("\n" + "="*60)
+    print("🚀 Starting up Task SL Dashboard...")
+    print("="*60)
+    
+    db = SessionLocal()
+    try:
+        print("\n🔄 Resetting online status for all users...")
+        db.execute(text("""
+            UPDATE users 
+            SET is_online = FALSE
+            WHERE is_online = TRUE
+        """))
+        db.commit()
+        print("✅ Reset is_online to FALSE for all users")
+    except Exception as e:
+        print(f"⚠️  Warning: Could not reset online status: {e}")
+        db.rollback()
+    finally:
+        db.close()
+    
+    print("="*60)
+    print("✅ Server ready!")
+    print("="*60 + "\n")
+    
+    yield
+    
+    # Shutdown: Cleanup
+    print("\n🛑 Shutting down...")
+    print("✅ Shutdown complete!")
+
+app = FastAPI(
+    title="Starlink Partner Dashboard", 
+    version="2.0.0",
+    lifespan=lifespan
+)
 
 # CORS middleware (already present)
 app.add_middleware(

@@ -95,6 +95,19 @@ class ConnectionManager:
         }
         await self.broadcast_to_admins(message)
         logger.info(f"Broadcasted status change for user {email}: {status}")
+    
+    def disconnect_all(self):
+        """Disconnect all WebSocket connections on shutdown"""
+        total_customer_connections = sum(len(conns) for conns in self.active_connections.values())
+        total_admin_connections = len(self.admin_connections)
+        
+        logger.info(f"Disconnecting {total_customer_connections} customer connections and {total_admin_connections} admin connections")
+        
+        # Clear all connections
+        self.active_connections.clear()
+        self.admin_connections.clear()
+        
+        logger.info("All WebSocket connections cleared")
 
 
 # Global WebSocket manager instance
