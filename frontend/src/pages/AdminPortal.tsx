@@ -19,13 +19,23 @@ const AdminPortal: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col md:flex-row">
       {/* Sidebar */}
       <div
         className={`bg-starlink-gray text-starlink-text transition-all duration-300 overflow-hidden flex flex-col ${
-          sidebarOpen ? 'w-[250px]' : 'w-[60px]'
-        }`}
+          sidebarOpen ? 'w-full md:w-[250px]' : 'w-[60px]'
+        } ${sidebarOpen ? 'fixed md:relative inset-0 z-50 md:z-auto' : 'fixed md:relative inset-0 z-50 md:z-auto'}`}
       >
+        {/* Close button for mobile */}
+        {sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden absolute top-4 right-4 text-starlink-text hover:text-starlink-text-secondary"
+          >
+            ✕
+          </button>
+        )}
+        
         <div
           className="p-5 border-b border-starlink-border cursor-pointer"
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -71,13 +81,33 @@ const AdminPortal: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto bg-starlink-darker">
+      <div className="flex-1 overflow-auto bg-starlink-darker w-full">
+        {/* Mobile Header */}
+        <div className="md:hidden bg-starlink-gray border-b border-starlink-border p-4 flex items-center justify-between">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-starlink-text text-2xl"
+          >
+            ☰
+          </button>
+          <h2 className="text-lg font-semibold">Admin Portal</h2>
+          <div className="w-8"></div>
+        </div>
+        
         <Routes>
           <Route path="/" element={<CustomerManagement />} />
           <Route path="/customers" element={<CustomerManagement />} />
           <Route path="/settings" element={<AdminSettings />} />
         </Routes>
       </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
     </div>
   );
 };

@@ -43,18 +43,18 @@ const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-starlink-dark flex items-center justify-center relative">
+    <div className="min-h-screen bg-starlink-dark flex items-center justify-center relative px-4 py-8">
       {/* Customer Login Icon - Top Right */}
       <Link 
         to="/login" 
-        className="absolute top-6 right-6 text-starlink-text-muted hover:text-starlink-text transition-colors duration-200"
+        className="absolute top-4 right-4 md:top-6 md:right-6 text-starlink-text-muted hover:text-starlink-text transition-colors duration-200"
         title="Customer Login"
       >
-        <FaUser size={28} />
+        <FaUser size={24} className="md:!w-7 md:!h-7" />
       </Link>
 
-      <div className="w-full max-w-md p-8 card">
-        <h2 className="text-3xl font-bold text-center mb-8 text-starlink-text">Admin Login</h2>
+      <div className="w-full max-w-md p-6 md:p-8 card">
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-starlink-text">Admin Login</h2>
         
         {error && (
           <div className="p-4 mb-6 rounded bg-red-900/50 border border-red-700 text-red-200">

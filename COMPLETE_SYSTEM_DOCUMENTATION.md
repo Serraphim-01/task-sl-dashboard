@@ -1767,6 +1767,44 @@ For issues or questions:
 
 ## Version History
 
+- **v2.3.0** (April 6, 2026): Mobile Responsive Design & Support Page
+  - **Mobile Responsive Implementation**:
+    - Full responsive design across all pages and components
+    - Mobile-first approach with Tailwind CSS breakpoints
+    - Hamburger menu for portal sidebars on mobile devices
+    - Full-screen overlay navigation for mobile sidebars
+    - Responsive tables with horizontal scrolling on small screens
+    - Adaptive padding, margins, and font sizes
+  - **Customer Portal Enhancements**:
+    - Mobile header with hamburger menu icon
+    - Sidebar collapses to full-screen overlay on mobile
+    - Close button for mobile sidebar navigation
+    - Responsive routing and navigation
+  - **Admin Portal Enhancements**:
+    - Mobile header with hamburger menu icon
+    - Sidebar collapses to full-screen overlay on mobile
+    - Responsive customer management table
+    - Hidden "Created" column on mobile to save space
+  - **Login Pages**:
+    - Responsive padding and spacing
+    - Adaptive icon sizes for mobile and desktop
+    - Touch-friendly input fields and buttons
+  - **Settings Pages**:
+    - Monochrome design (removed all blue accents)
+    - Responsive padding and typography
+    - Mobile-optimized form inputs
+  - **Support Page**:
+    - Customer Support page with ticket portal link
+    - Contact email and website information
+    - Support hours display
+    - Responsive card layout with flex-col on mobile
+    - Monochrome styling consistent with Settings pages
+  - **UI/UX Improvements**:
+    - Consistent mobile experience across all pages
+    - Touch-friendly tap targets (minimum 44px)
+    - Responsive images and icons
+    - Improved readability on small screens
+
 - **v2.2.0** (April 6, 2026): Settings Modal & UI Enhancements
   - **Settings Modal Implementation**:
     - Added Settings button to Customer Portal sidebar (text-based, above Logout)

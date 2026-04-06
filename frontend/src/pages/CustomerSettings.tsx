@@ -132,10 +132,10 @@ const CustomerSettings: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-starlink-darker p-8">
+    <div className="min-h-screen bg-starlink-darker p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <button
             onClick={() => navigate('/customer/portal')}
             className="flex items-center gap-2 text-starlink-text-secondary hover:text-starlink-text transition-colors mb-4"
@@ -143,7 +143,7 @@ const CustomerSettings: React.FC = () => {
             <FaArrowLeft />
             <span>Back to Portal</span>
           </button>
-          <h1 className="text-3xl font-bold text-starlink-text">Settings</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-starlink-text">Settings</h1>
         </div>
 
         {error && (
@@ -165,14 +165,14 @@ const CustomerSettings: React.FC = () => {
               <h2 className="text-xl font-semibold text-starlink-text mb-4">Profile Information</h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-4 p-4 bg-starlink-light rounded-lg">
-                  <FaUser className="text-starlink-accent mt-1" size={20} />
+                  <FaUser className="text-starlink-text mt-1" size={20} />
                   <div className="flex-1">
                     <p className="text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Email</p>
                     <p className="text-starlink-text font-medium">{userData.email || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4 p-4 bg-starlink-light rounded-lg">
-                  <FaUser className="text-starlink-accent mt-1" size={20} />
+                  <FaUser className="text-starlink-text mt-1" size={20} />
                   <div className="flex-1">
                     <p className="text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Organization</p>
                     <p className="text-starlink-text font-medium">{userData.enterprise_name || 'N/A'}</p>
@@ -203,7 +203,7 @@ const CustomerSettings: React.FC = () => {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 bg-starlink-light border border-starlink-border rounded text-starlink-text focus:outline-none focus:border-starlink-accent"
+                  className="w-full px-4 py-3 bg-starlink-light border border-starlink-border rounded text-starlink-text focus:outline-none focus:border-starlink-text-secondary"
                   placeholder="Enter current password"
                 />
               </div>
@@ -219,7 +219,7 @@ const CustomerSettings: React.FC = () => {
                   value={passwordData.new_password}
                   onChange={handlePasswordChange}
                   required
-                  className="w-full px-4 py-3 bg-starlink-light border border-starlink-border rounded text-starlink-text focus:outline-none focus:border-starlink-accent"
+                  className="w-full px-4 py-3 bg-starlink-light border border-starlink-border rounded text-starlink-text focus:outline-none focus:border-starlink-text-secondary"
                   placeholder="Enter new password"
                 />
                 {passwordData.new_password && (
@@ -251,7 +251,7 @@ const CustomerSettings: React.FC = () => {
                   required
                   className={`w-full px-4 py-3 bg-starlink-light border rounded text-starlink-text focus:outline-none ${
                     passwordMatch === null
-                      ? 'border-starlink-border focus:border-starlink-accent'
+                      ? 'border-starlink-border focus:border-starlink-text-secondary'
                       : passwordMatch
                       ? 'border-green-600 focus:border-green-600'
                       : 'border-red-600 focus:border-red-600'

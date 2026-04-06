@@ -232,17 +232,18 @@ const CustomerManagement: React.FC = () => {
         </div>
       ) : (
         <div className="card overflow-hidden">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-starlink-light border-b-2 border-starlink-border">
-                <th className="p-4 text-left text-starlink-text font-semibold">Email</th>
-                <th className="p-4 text-left text-starlink-text font-semibold">Enterprise</th>
-                <th className="p-4 text-left text-starlink-text font-semibold">Status</th>
-                <th className="p-4 text-left text-starlink-text font-semibold">Created</th>
-                <th className="p-4 text-center text-starlink-text font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-starlink-light border-b-2 border-starlink-border">
+                  <th className="p-3 md:p-4 text-left text-starlink-text font-semibold text-sm md:text-base">Email</th>
+                  <th className="p-3 md:p-4 text-left text-starlink-text font-semibold text-sm md:text-base">Enterprise</th>
+                  <th className="p-3 md:p-4 text-left text-starlink-text font-semibold text-sm md:text-base">Status</th>
+                  <th className="p-3 md:p-4 text-left text-starlink-text font-semibold text-sm md:text-base hidden md:table-cell">Created</th>
+                  <th className="p-3 md:p-4 text-center text-starlink-text font-semibold text-sm md:text-base">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
               {customers.map((customer) => (
                 <tr key={customer.user_id} className="border-b border-starlink-border hover:bg-starlink-light/50 transition-colors">
                   <td className="p-4 text-starlink-text">{customer.email}</td>
@@ -266,6 +267,7 @@ const CustomerManagement: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
