@@ -7,8 +7,6 @@ const AdminCustomerForm: React.FC = () => {
     enterprise_name: '',
     starlink_client_id: '',
     starlink_client_secret: '',
-    password: '',
-    confirm_password: '',
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -27,15 +25,13 @@ const AdminCustomerForm: React.FC = () => {
 
     try {
       const response = await createCustomer(formData);
-      setMessage({ type: 'success', text: `Customer created successfully! User ID: ${response.user_id}` });
+      setMessage({ type: 'success', text: `${response.message} User ID: ${response.user_id}` });
       // Reset form
       setFormData({
         email: '',
         enterprise_name: '',
         starlink_client_id: '',
         starlink_client_secret: '',
-        password: '',
-        confirm_password: '',
       });
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Failed to create customer';
@@ -112,38 +108,6 @@ const AdminCustomerForm: React.FC = () => {
             type="password"
             name="starlink_client_secret"
             value={formData.starlink_client_secret}
-            onChange={handleChange}
-            required
-            className="input-field"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-2 font-semibold text-starlink-text">
-            Password:
-          </label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            minLength={8}
-            className="input-field"
-          />
-          <small className="text-starlink-text-muted mt-1 block">
-            Must be at least 8 characters with uppercase, lowercase, and digit
-          </small>
-        </div>
-
-        <div>
-          <label className="block mb-2 font-semibold text-starlink-text">
-            Confirm Password:
-          </label>
-          <input
-            type="password"
-            name="confirm_password"
-            value={formData.confirm_password}
             onChange={handleChange}
             required
             className="input-field"

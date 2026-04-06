@@ -16,16 +16,36 @@ export const loginCustomer = async (email: string, password: string) => {
   return response.data;
 };
 
-// Create customer (admin only)
+// Create customer (admin only) - No password required, user will set on first login
 export const createCustomer = async (customerData: {
   email: string;
   enterprise_name: string;
   starlink_client_id: string;
   starlink_client_secret: string;
-  password: string;
-  confirm_password: string;
 }) => {
   const response = await api.post('/admin/customers', customerData);
+  return response.data;
+};
+
+// Change password (for authenticated users)
+export const changePassword = async (passwordData: {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+}) => {
+  const response = await api.post('/auth/change-password', passwordData);
+  return response.data;
+};
+
+// Check forgot password status (public endpoint)
+export const checkForgotPasswordStatus = async (email: string) => {
+  const response = await api.post('/auth/forgot-password/status', { email });
+  return response.data;
+};
+
+// Get WebSocket token for real-time updates
+export const getWebSocketToken = async () => {
+  const response = await api.get('/auth/ws-token');
   return response.data;
 };
 

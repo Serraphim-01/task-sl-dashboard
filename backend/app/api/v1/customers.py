@@ -19,14 +19,13 @@ class CreateCustomerRequest(BaseModel):
     enterprise_name: str
     starlink_client_id: str
     starlink_client_secret: str
-    password: str
-    confirm_password: str
 
 
 class CreateCustomerResponse(BaseModel):
     message: str
     user_id: int
     email: str
+    status: str  # Will be "Unactivated" initially
 
 
 class UserListItem(BaseModel):
@@ -34,7 +33,21 @@ class UserListItem(BaseModel):
     email: str
     enterprise_name: str
     is_admin: bool
+    is_active: bool
+    is_online: bool
+    must_change_password: bool
+    last_login_at: datetime | None = None
     created_at: datetime | None = None
+    
+    @property
+    def status(self) -> str:
+        """Determine user status based on their state"""
+        if not self.is_active and not self.last_login_at:
+            return "Unactivated"  # Never logged in, no password set
+        elif self.is_online:
+            return "Active"  # Currently logged in
+        else:
+            return "Inactive"  # Logged out or session expired
 
 
 class UserListResponse(BaseModel):
@@ -50,6 +63,7 @@ async def create_customer(
     """
     Admin endpoint to create a new customer.
     Stores Starlink credentials in Azure Key Vault and user info in database.
+    Customer will be created with Unactivated status and must set password on first login.
     """
     db = SessionLocal()
     try:
@@ -58,30 +72,10 @@ async def create_customer(
         if not re.match(email_pattern, request.email):
             raise HTTPException(status_code=400, detail="Invalid email format")
         
-        # Validate password strength
-        if len(request.password) < 8:
-            raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
-        
-        if not re.search(r'[A-Z]', request.password):
-            raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter")
-        
-        if not re.search(r'[a-z]', request.password):
-            raise HTTPException(status_code=400, detail="Password must contain at least one lowercase letter")
-        
-        if not re.search(r'[0-9]', request.password):
-            raise HTTPException(status_code=400, detail="Password must contain at least one digit")
-        
-        # Check if passwords match
-        if request.password != request.confirm_password:
-            raise HTTPException(status_code=400, detail="Passwords do not match")
-        
         # Check if email already exists
         existing_user = db.query(User).filter(User.email == request.email).first()
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already registered")
-        
-        # Hash password
-        hashed_password = hash_password(request.password)
         
         # Generate unique secret names for Key Vault
         client_id_secret_name = f"customer-{request.email.replace('@', '-').replace('.', '-')}-client-id"
@@ -100,26 +94,29 @@ async def create_customer(
         
         logger.info(f"Successfully stored credentials in Key Vault for customer: {request.email}")
         
-        # Create user record in database
+        # Create user record in database (without password - unactivated)
         new_user = User(
             email=request.email,
-            hashed_password=hashed_password,
+            hashed_password=None,  # No password yet - user will set on first login
             kms_client_id_secret_name=client_id_secret_name,
             kms_client_secret_secret_name=client_secret_secret_name,
             enterprise_name=request.enterprise_name,
-            is_admin=False
+            is_admin=False,
+            is_active=False,  # Inactive until first login
+            must_change_password=True  # Must set password on first login
         )
         
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
         
-        logger.info(f"Created new customer user: {request.email} (ID: {new_user.id})")
+        logger.info(f"Created new customer user: {request.email} (ID: {new_user.id}) - Status: Unactivated")
         
         return CreateCustomerResponse(
-            message="Customer created successfully",
+            message="Customer created successfully. User must set password on first login.",
             user_id=new_user.id,
-            email=new_user.email
+            email=new_user.email,
+            status="Unactivated"
         )
         
     except HTTPException:
@@ -136,7 +133,7 @@ async def create_customer(
 @router.get("/admin/users", response_model=UserListResponse)
 async def list_users(current_admin: User = Depends(get_current_admin_user)):
     """
-    Admin endpoint to list all users.
+    Admin endpoint to list all users with their status.
     """
     db = SessionLocal()
     try:
@@ -147,6 +144,10 @@ async def list_users(current_admin: User = Depends(get_current_admin_user)):
                 email=user.email,
                 enterprise_name=user.enterprise_name,
                 is_admin=user.is_admin,
+                is_active=user.is_active,
+                is_online=user.is_online,
+                must_change_password=user.must_change_password,
+                last_login_at=user.last_login_at,
                 created_at=user.created_at
             )
             for user in users

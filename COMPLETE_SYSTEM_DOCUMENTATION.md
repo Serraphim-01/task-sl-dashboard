@@ -24,10 +24,12 @@ The **Starlink Partner Dashboard** is a full-stack web application that enables 
 ### Key Features
 
 #### Admin Portal
-- Create and manage customer accounts
+- Create and manage customer accounts (passwordless creation)
 - Store Starlink credentials securely in Azure Key Vault
+- Customer Management with real-time status updates via WebSocket
 - User management and administration
 - Role-based access control
+- Live customer status tracking (Unactivated/Active/Inactive)
 
 #### Customer Portal
 - View Starlink account information
@@ -36,6 +38,14 @@ The **Starlink Partner Dashboard** is a full-stack web application that enables 
 - Task management and tracking
 - Network configuration viewing
 - Alert monitoring and acknowledgment
+- First-time password setup flow
+- Enhanced login with password strength indicator
+
+#### Real-Time Features
+- **WebSocket Integration**: Instant status updates without page refresh
+- **Live Status Tracking**: See customer login/logout events in real-time
+- **Automatic Notifications**: Admin receives alerts when customer status changes
+- **Connection Indicators**: Visual feedback for WebSocket connection status
 
 ### Security Highlights
 - **Zero credential storage**: Starlink credentials stored only in Azure Key Vault
@@ -184,7 +194,17 @@ The **Starlink Partner Dashboard** is a full-stack web application that enables 
   - High performance
   - Hot reload in development
   - Async support
+  - WebSocket support
 - **Why**: Recommended ASGI server for FastAPI
+
+#### **websockets**
+- **Purpose**: WebSocket library for real-time communication
+- **Features**:
+  - Bidirectional communication
+  - Low latency
+  - Persistent connections
+  - Async support
+- **Why**: Enables real-time updates without page refresh
 
 ### Frontend Technologies
 
@@ -241,6 +261,26 @@ The **Starlink Partner Dashboard** is a full-stack web application that enables 
   - Path/domain settings
 - **Why**: Simple API, handles edge cases
 
+#### **WebSocket API (Native Browser)**
+- **Purpose**: Real-time bidirectional communication
+- **Features**:
+  - Persistent connection to server
+  - Event-driven message handling
+  - Automatic reconnection logic
+  - Ping/pong keep-alive
+- **Why**: Native browser support, no library needed
+
+#### **Custom Hook: useWebSocket**
+- **File**: `frontend/src/hooks/useWebSocket.ts`
+- **Purpose**: Reusable WebSocket connection management
+- **Features**:
+  - Automatic connection on mount
+  - Auto-reconnect on disconnect (3s delay)
+  - Message queue and parsing
+  - Connection state tracking
+  - Manual reconnect function
+- **Why**: Centralized WebSocket logic, easy to reuse
+
 #### **Create React App (react-scripts 5.0)**
 - **Purpose**: React application scaffolding
 - **Features**:
@@ -295,9 +335,21 @@ The Admin Portal allows system administrators to manage customer accounts, users
   - HTTP-only cookie storage
   - Redirect to admin dashboard on success
 
-#### 2. Manage Customers (`/admin/customers`)
-- **File**: `frontend/src/pages/AdminCustomerForm.tsx`
+#### 2. Customer Management (`/admin/customers`)
+- **File**: `frontend/src/pages/CustomerManagement.tsx`
 - **Features**:
+  - Modal-based customer creation (no separate page)
+  - **NO password required** - customers set password on first login
+  - Real-time status tracking with WebSocket
+  - Three-tier status system:
+    - **Unactivated** (Gray): Customer created, never logged in
+    - **Active** (Green): Customer currently logged in
+    - **Inactive** (Yellow): Customer logged out
+  - Live connection indicator (green dot = WebSocket connected)
+  - Automatic status change notifications
+  - Customer deletion with confirmation
+  - Enterprise name and email display
+  - Last login timestamp tracking
   - Create new customer accounts
   - Input validation (email format, password strength)
   - Starlink credential entry
@@ -354,6 +406,22 @@ The Customer Portal provides Starlink customers with a comprehensive view of the
   - Error handling
   - Auto-redirect to portal
   - Cookie-based session
+  - **First Login Mode**: 
+    - "First Login?" link under password field
+    - Email verification for unactivated accounts
+    - Password setup with strength indicator
+    - Real-time password match confirmation
+  - **Forgot Password Flow**:
+    - "Forgot Password?" link with underline styling
+    - Multi-step reset process
+    - Email status verification
+    - Smart routing based on account status
+  - **Password Strength Indicator**:
+    - Progress bar with 4 checks (length, uppercase, lowercase, digits)
+    - Color-coded feedback (red/yellow/green)
+  - **Password Match Validation**:
+    - Real-time confirmation under confirm password field
+    - Visual feedback (✓ match, ✗ mismatch)
 
 #### 2. Customer Portal Layout (`/customer/portal/*`)
 - **File**: `frontend/src/pages/CustomerPortal.tsx`
@@ -420,14 +488,38 @@ The Customer Portal provides Starlink customers with a comprehensive view of the
 
 ### Customer Workflow
 
+**Regular Login:**
 ```
 1. Customer logs in with email/password
 2. Backend authenticates and sets JWT cookie
-3. Customer navigates to portal
-4. Frontend fetches data from backend
-5. Backend retrieves credentials from Key Vault
-6. Backend calls Starlink API with credentials
-7. Data displayed in dark-themed UI
+3. Backend sets is_online = true
+4. WebSocket broadcasts "Active" status to all admins
+5. Customer navigates to portal
+6. Frontend fetches data from backend
+7. Backend retrieves credentials from Key Vault
+8. Backend calls Starlink API with credentials
+9. Data displayed in dark-themed UI
+```
+
+**First Login (Unactivated Account):**
+```
+1. Customer clicks "First Login?" on login page
+2. Enters email address
+3. Backend checks account status (unactivated)
+4. Customer sets new password with strength validation
+5. Password confirmed and validated
+6. Backend sets: is_active=true, is_online=true, must_change_password=false
+7. WebSocket broadcasts "Active" status to all admins
+8. Customer redirected to portal
+```
+
+**Logout:**
+```
+1. Customer clicks logout
+2. Backend sets is_online = false
+3. WebSocket broadcasts "Inactive" status to all admins
+4. JWT cookie cleared
+5. Customer redirected to login page
 ```
 
 ---
@@ -436,12 +528,17 @@ The Customer Portal provides Starlink customers with a comprehensive view of the
 
 ### Complete Endpoint Inventory
 
-#### Authentication Endpoints (2)
+#### Authentication Endpoints (6)
 
 | Method | Endpoint | Description | Frontend | Tested |
 |--------|----------|-------------|----------|--------|
 | POST | `/api/v1/auth/login` | Customer/Admin login | ✅ Yes | ✅ Yes |
+| POST | `/api/v1/auth/logout` | Logout user (sets is_online=false) | ✅ Yes | ✅ Yes |
 | GET | `/api/v1/auth/me` | Get current user info | ✅ Yes | ✅ Yes |
+| POST | `/api/v1/auth/change-password` | Change/set password | ✅ Yes | ✅ Yes |
+| POST | `/api/v1/auth/forgot-password/status` | Check forgot password eligibility | ✅ Yes | ✅ Yes |
+| GET | `/api/v1/auth/ws-token` | Get WebSocket authentication token | ✅ Yes | ✅ Yes |
+| WS | `/api/v1/ws/{user_id}` | WebSocket for real-time updates | ✅ Yes | ✅ Yes |
 
 #### Admin Endpoints (3)
 
@@ -539,11 +636,15 @@ The following POST/PUT/DELETE operations are implemented in backend but not in f
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
-    hashed_password VARCHAR(255) NOT NULL,
+    hashed_password VARCHAR(255),  -- NULLABLE for unactivated accounts
     kms_client_id_secret_name VARCHAR(255) NOT NULL,
     kms_client_secret_secret_name VARCHAR(255) NOT NULL,
     enterprise_name VARCHAR(255) NOT NULL,
     is_admin BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT FALSE,  -- Account activated (set password)
+    is_online BOOLEAN DEFAULT FALSE,  -- Currently logged in (real-time)
+    last_login_at TIMESTAMP WITH TIME ZONE,  -- Last login timestamp
+    must_change_password BOOLEAN DEFAULT TRUE,  -- Force password change on first login
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE
 );
@@ -555,13 +656,51 @@ CREATE TABLE users (
 |-------|------|-------------|---------|
 | `id` | Integer | Primary key, auto-increment | 1, 2, 3 |
 | `email` | String | Unique email address | `customer@example.com` |
-| `hashed_password` | String | Bcrypt hashed password | `$2b$12$...` |
+| `hashed_password` | String | Bcrypt hashed password (NULLABLE) | `$2b$12$...` or NULL |
 | `kms_client_id_secret_name` | String | Key Vault secret name for Client ID | `customer-email-client-id` |
 | `kms_client_secret_secret_name` | String | Key Vault secret name for Client Secret | `customer-email-client-secret` |
 | `enterprise_name` | String | Company/organization name | `Acme Corp` |
 | `is_admin` | Boolean | Admin flag | `true` or `false` |
+| `is_active` | Boolean | Account activated (password set) | `true` or `false` |
+| `is_online` | Boolean | Currently logged in (real-time tracking) | `true` or `false` |
+| `last_login_at` | Timestamp | Last login time | `2024-01-01 12:00:00` |
+| `must_change_password` | Boolean | Force password change | `true` (first login) |
 | `created_at` | Timestamp | Account creation time | `2024-01-01 12:00:00` |
 | `updated_at` | Timestamp | Last update time | `2024-01-02 15:30:00` |
+
+### User Status Logic
+
+The system uses a **three-tier status system** based on user activity:
+
+| Status | Condition | Badge Color | Description |
+|--------|-----------|-------------|-------------|
+| **Unactivated** | `is_active=false` AND `last_login_at=NULL` | Gray | Customer created, never logged in or set password |
+| **Active** | `is_online=true` | Green | Customer currently logged in and using platform |
+| **Inactive** | `is_online=false` AND `is_active=true` | Yellow | Customer has account but is currently logged out |
+
+### Status Flow Diagram
+
+```
+Admin Creates Customer
+        ↓
+   [Unactivated] ← is_active=false, is_online=false
+        ↓
+Customer First Login (sets password)
+        ↓
+    [Active] ← is_active=true, is_online=true
+        ↓
+Customer Using Platform
+        ↓
+    [Active] ← is_online=true (stays active)
+        ↓
+Customer Logs Out
+        ↓
+   [Inactive] ← is_online=false
+        ↓
+Customer Logs In Again
+        ↓
+    [Active] ← is_online=true
+```
 
 ### Security Note
 
@@ -570,6 +709,180 @@ CREATE TABLE users (
 ```
 Database: "customer-test-client-id" (just a name)
 Key Vault: "starlink-client-id-xyz123" (actual encrypted value)
+```
+
+---
+
+## WebSocket Real-Time Updates
+
+### Overview
+
+The system implements WebSocket technology to provide **instant, real-time updates** without requiring page refreshes. This is particularly useful for tracking customer login/logout status in the admin dashboard.
+
+### Architecture
+
+```
+┌──────────────┐
+│   Customer   │ Logs in/out
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────────┐
+│   Backend (FastAPI)      │
+│   Sets is_online status  │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  WebSocket Manager       │
+│  Broadcasts to admins    │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│   Admin Dashboard        │
+│   Updates instantly      │
+│   NO refresh needed!     │
+└──────────────────────────┘
+```
+
+### WebSocket Endpoint
+
+**URL**: `ws://localhost:8000/api/v1/ws/{user_id}?token=JWT_TOKEN`
+
+**Authentication**: 
+- JWT token required as query parameter
+- Token verified on connection
+- User ID must match token payload
+- Connection rejected if invalid (403 Forbidden)
+
+**Connection Flow**:
+1. Admin logs in and navigates to Customer Management
+2. Frontend requests WebSocket token from `/api/v1/auth/ws-token`
+3. Frontend establishes WebSocket connection with token
+4. Connection accepted and welcome message sent
+5. WebSocket listens for status change broadcasts
+6. When customer logs in/out, admin receives instant update
+7. Customer list updated automatically
+8. Notification displayed to admin
+
+### WebSocket Messages
+
+**Server → Client Messages**:
+
+1. **Connection Established**:
+```json
+{
+  "type": "connection_established",
+  "user_id": 1,
+  "is_admin": true,
+  "message": "WebSocket connection established"
+}
+```
+
+2. **User Status Change**:
+```json
+{
+  "type": "user_status_change",
+  "user_id": 2,
+  "email": "customer@example.com",
+  "is_online": true,
+  "status": "Active",
+  "timestamp": "2024-04-06T12:00:00Z"
+}
+```
+
+3. **Pong (Keep-Alive Response)**:
+```json
+{
+  "type": "pong",
+  "timestamp": "2024-04-06T12:00:30Z"
+}
+```
+
+**Client → Server Messages**:
+
+1. **Ping (Keep-Alive)**:
+```json
+{
+  "type": "ping"
+}
+```
+
+### Frontend Implementation
+
+**Hook**: `frontend/src/hooks/useWebSocket.ts`
+
+Features:
+- Automatic connection on component mount
+- Auto-reconnect on disconnection (3-second delay)
+- Ping every 30 seconds to keep connection alive
+- Message parsing and state management
+- Error handling and logging
+
+**Integration**: `frontend/src/pages/CustomerManagement.tsx`
+
+Features:
+- WebSocket connection indicator (green/gray dot)
+- Real-time customer list updates
+- Toast notifications on status changes
+- Automatic UI refresh without page reload
+
+### Backend Implementation
+
+**Manager**: `backend/app/websocket_manager.py`
+
+Features:
+- Connection management for multiple clients
+- Separate tracking for admin vs customer connections
+- Broadcast to all admins when user status changes
+- Automatic cleanup of disconnected clients
+- Thread-safe connection handling
+
+**Broadcast Triggers**:
+- Login endpoint: Broadcasts "Active" status
+- Logout endpoint: Broadcasts "Inactive" status
+
+### Benefits
+
+✅ **Real-Time Updates**: No page refresh needed  
+✅ **Efficient**: Only sends data when changes occur  
+✅ **Scalable**: Handles multiple concurrent connections  
+✅ **Secure**: JWT authentication required  
+✅ **Reliable**: Automatic reconnection support  
+✅ **User-Friendly**: Visual connection indicator  
+
+### Testing WebSocket
+
+**Browser Console**:
+```javascript
+// Successful connection
+✅ WebSocket token obtained
+Connecting to WebSocket: ws://localhost:8000/api/v1/ws/1?token=...
+✅ WebSocket connected
+
+// Receiving message
+📨 WebSocket message received: {type: "user_status_change", ...}
+🔄 Real-time status update received: {...}
+
+// Disconnection
+❌ WebSocket disconnected: 1006
+🔄 Attempting to reconnect in 3 seconds...
+```
+
+**Manual Testing with wscat**:
+```bash
+# Install wscat
+npm install -g wscat
+
+# Connect (replace TOKEN with actual JWT)
+wscat -c "ws://localhost:8000/api/v1/ws/1?token=YOUR_JWT_TOKEN"
+
+# Send ping
+{"type": "ping"}
+
+# Receive pong
+{"type": "pong", "timestamp": "..."}
 ```
 
 ---
@@ -589,6 +902,23 @@ Key Vault: "starlink-client-id-xyz123" (actual encrypted value)
 - At least one uppercase letter
 - At least one lowercase letter
 - At least one digit
+
+**Password Strength Indicator**:
+- Real-time visual feedback during password creation
+- Progress bar with 4 levels (0%, 25%, 50%, 75%, 100%)
+- Color-coded: Red (weak) → Yellow (medium) → Green (strong)
+- Checks performed:
+  1. Length ≥ 8 characters (+25%)
+  2. Contains uppercase letter (+25%)
+  3. Contains lowercase letter (+25%)
+  4. Contains digit (+25%)
+
+**Passwordless Customer Creation**:
+- Admins NO LONGER set passwords for customers
+- Customers set their own passwords on first login
+- More secure: passwords never transmitted to admin
+- `hashed_password` field is NULL for unactivated accounts
+- `must_change_password` flag enforces first-time setup
 
 ### 2. JWT Authentication
 
@@ -655,7 +985,36 @@ Example: customer-test-example-com-client-id
 - Development: `http://localhost:3000`
 - Production: Configure specific domains
 
-**Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS
+**Allowed Methods**: GET, POST, PUT, DELETE, OPTIONS, WebSocket
+
+**WebSocket CORS**:
+- WebSocket connections bypass normal HTTP CORS
+- Authenticated via JWT token in query parameter
+- Token verified before connection accepted
+- Connection rejected with appropriate error codes:
+  - 4001: Missing authentication token
+  - 4002: Invalid or expired token
+  - 4003: User ID mismatch
+
+### 7. WebSocket Security
+
+**Token-Based Authentication**:
+- JWT token required for WebSocket connection
+- Token passed as query parameter (not cookie)
+- Token verified on connection establishment
+- User ID must match token payload
+
+**Connection Security**:
+- Connections tracked and managed centrally
+- Automatic cleanup on disconnect
+- Ping/pong keeps connections alive (30s interval)
+- Max message size limits enforced
+
+**Production Recommendations**:
+- Use `wss://` instead of `ws://` (encrypted WebSocket)
+- Implement rate limiting on connections
+- Add connection limits per user
+- Use Redis pub/sub for horizontal scaling
 
 ---
 
@@ -821,17 +1180,26 @@ cp .env.example .env  # or create manually
 #### 3. Database Initialization
 
 ```bash
-# Run database initialization script
+# Run database initialization script (includes all migrations)
 python init_db.py
 
 # This will:
-# - Create 'users' table
+# - Create 'users' table with all fields
+# - Run migrations for new fields:
+#   * is_online (real-time login tracking)
+#   * is_active (account activation status)
+#   * last_login_at (last login timestamp)
+#   * must_change_password (force password change)
+#   * Make hashed_password nullable
 # - Insert default admin user
 #   Email: admin@tasksystems.com
 #   Password: Admin@123456
 ```
 
-**⚠️ IMPORTANT**: Change admin password after first login!
+**⚠️ IMPORTANT**: 
+- Change admin password after first login!
+- All migrations are idempotent (safe to run multiple times)
+- Migrations check for existing columns before adding
 
 #### 4. Start Backend Server
 
@@ -879,16 +1247,33 @@ python test_customer_endpoints.py
    - Password: `Admin@123456`
    - **Change password immediately!**
 
-2. **Create First Customer**:
-   - Navigate to "Manage Customers"
-   - Fill in customer details
-   - Enter Starlink Client ID and Secret
+2. **Create First Customer** (Passwordless):
+   - Navigate to "Customer Management"
+   - Click "Create Customer" button
+   - Fill in customer details:
+     - Email address
+     - Enterprise name
+     - Starlink Client ID
+     - Starlink Client Secret
+   - **NO password required** - customer will set on first login
    - Click "Create Customer"
+   - Customer appears with "Unactivated" status (gray badge)
 
-3. **Customer Login**:
+3. **Customer First Login**:
    - Go to `http://localhost:3000/login`
-   - Use customer credentials
-   - Access customer portal
+   - Click "First Login?" link
+   - Enter email address
+   - Click "Continue"
+   - Set new password (with strength indicator)
+   - Confirm password
+   - Click "Set Password & Login"
+   - Status changes to "Active" (green badge) - visible to admin in real-time!
+
+4. **Test Real-Time Updates**:
+   - Open admin panel in one browser
+   - Login as customer in another browser
+   - Watch admin panel - status updates instantly without refresh!
+   - Green "Live Updates" indicator shows WebSocket is connected
 
 ---
 
@@ -1347,6 +1732,41 @@ For issues or questions:
 
 ## Version History
 
+- **v2.0.0** (April 6, 2026): Major Feature Update - Real-Time Customer Management
+  - **Passwordless Customer Creation**: Admins no longer set passwords for customers
+  - **Three-Tier Status System**: Unactivated (Gray), Active (Green), Inactive (Yellow)
+  - **Real-Time WebSocket Updates**: Instant status changes without page refresh
+  - **First Login Password Setup**: Customers set passwords on first login
+  - **Enhanced Login UI**: 
+    - First Login mode with email verification
+    - Forgot Password flow with multi-step process
+    - Password strength indicator with progress bar
+    - Real-time password match confirmation
+  - **Live Status Tracking**: 
+    - `is_online` field for real-time login tracking
+    - `is_active` field for account activation
+    - `last_login_at` timestamp tracking
+    - `must_change_password` flag for first-time setup
+  - **Customer Management Page**: 
+    - Modal-based customer creation (replaced separate page)
+    - WebSocket connection indicator
+    - Automatic status change notifications
+  - **Database Migrations**: 
+    - All migrations integrated into `init_db.py`
+    - Idempotent migration scripts
+    - Nullable `hashed_password` for unactivated accounts
+  - **WebSocket Implementation**:
+    - Real-time bidirectional communication
+    - Auto-reconnect on disconnection
+    - Ping/pong keep-alive (30s interval)
+    - JWT authentication for WebSocket connections
+    - Broadcast to all admins on status changes
+  - **Security Enhancements**:
+    - Passwords never transmitted to admins
+    - Password strength validation on all inputs
+    - WebSocket token-based authentication
+    - Enhanced CORS configuration
+
 - **v1.0.0** (April 2026): Initial release
   - Admin portal with customer management
   - Customer portal with Starlink integration
@@ -1358,6 +1778,6 @@ For issues or questions:
 
 ---
 
-**Last Updated**: April 5, 2026  
+**Last Updated**: April 6, 2026  
 **Maintained By**: Development Team  
 **License**: Proprietary

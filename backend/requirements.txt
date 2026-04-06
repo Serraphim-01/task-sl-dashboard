@@ -10,3 +10,4 @@ azure-keyvault-secrets
 azure-identity
 bcrypt
 python-jose[cryptography]
+websockets

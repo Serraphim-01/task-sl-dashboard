@@ -5,6 +5,8 @@ import api from '../services/api.ts';
 interface User {
   role: 'admin' | 'customer' | 'guest';
   token: string | null;
+  userId: number | null;
+  mustChangePassword?: boolean;
 }
 
 interface AuthContextType {
@@ -30,7 +32,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User>({ role: 'guest', token: null });
+  const [user, setUser] = useState<User>({ role: 'guest', token: null, userId: null });
   const [isLoading, setIsLoading] = useState(true);
 
   // Restore user from token on mount
@@ -41,11 +43,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const response = await api.get('/auth/me');
         setUser({ 
           role: response.data.is_admin ? 'admin' : 'customer', 
-          token: 'authenticated' // We don't need the actual token, just know we're authenticated
+          token: 'authenticated', // We don't need the actual token, just know we're authenticated
+          userId: response.data.user_id || null,
+          mustChangePassword: response.data.must_change_password
         });
       } catch (error) {
         // If request fails, user is not authenticated
-        setUser({ role: 'guest', token: null });
+        setUser({ role: 'guest', token: null, userId: null });
       } finally {
         setIsLoading(false);
       }
@@ -62,7 +66,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userResponse = await api.get('/auth/me');
       setUser({ 
         role: userResponse.data.is_admin ? 'admin' : 'customer', 
-        token: 'authenticated'
+        token: 'authenticated',
+        userId: userResponse.data.user_id || null,
+        mustChangePassword: userResponse.data.must_change_password
       });
     } catch (error) {
       throw error;
@@ -75,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (e) {
       // Ignore if no logout endpoint
     }
-    setUser({ role: 'guest', token: null });
+    setUser({ role: 'guest', token: null, userId: null });
   };
 
   const isAdmin = user.role === 'admin';

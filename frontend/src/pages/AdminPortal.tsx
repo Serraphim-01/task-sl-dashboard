@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import AdminCustomerForm from './AdminCustomerForm.tsx';
-import UserManagement from './UserManagement.tsx';
+import CustomerManagement from './CustomerManagement.tsx';
 
 const AdminPortal: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -10,8 +9,7 @@ const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
 
   const navItems = [
-    { path: '/admin/customers', label: 'Manage Customers' },
-    { path: '/admin/users', label: 'User Management' },
+    { path: '/admin/customers', label: 'Customer Management' },
   ];
 
   const handleLogout = () => {
@@ -68,9 +66,8 @@ const AdminPortal: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-starlink-darker">
         <Routes>
-          <Route path="/" element={<AdminCustomerForm />} />
-          <Route path="/customers" element={<AdminCustomerForm />} />
-          <Route path="/users" element={<UserManagement />} />
+          <Route path="/" element={<CustomerManagement />} />
+          <Route path="/customers" element={<CustomerManagement />} />
         </Routes>
       </div>
     </div>

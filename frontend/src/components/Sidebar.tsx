@@ -5,8 +5,7 @@ import KmsTestButton from './KmsTestButton.tsx';
 
 // Admin navigation items
 const adminNavItems = [
-  { path: '/admin/customers', label: 'Manage Customers' },
-  { path: '/admin/users', label: 'User Management' },
+  { path: '/admin/customers', label: 'Customer Management' },
   { path: '/admin/login', label: 'Admin Login' },
 ];
 
