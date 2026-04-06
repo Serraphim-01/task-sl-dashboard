@@ -7,11 +7,10 @@ import TelemetryDashboard from './TelemetryDashboard.tsx';
 import TaskViewer from './TaskViewer.tsx';
 import NetworkConfig from './NetworkConfig.tsx';
 import AlertsViewer from './AlertsViewer.tsx';
-import SettingsModal from '../components/SettingsModal.tsx';
+import CustomerSettings from './CustomerSettings.tsx';
 
 const CustomerPortal: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -67,7 +66,7 @@ const CustomerPortal: React.FC = () => {
         {/* Settings and Logout Buttons at Bottom */}
         <div className="border-t border-starlink-border p-3 space-y-2">
           <button
-            onClick={() => setShowSettings(true)}
+            onClick={() => navigate('/customer/portal/settings')}
             className="w-full px-4 py-3 text-starlink-text hover:bg-starlink-light rounded transition-all duration-200 cursor-pointer bg-transparent border-none text-left"
           >
             {sidebarOpen && <span>Settings</span>}
@@ -91,11 +90,9 @@ const CustomerPortal: React.FC = () => {
           <Route path="/tasks" element={<TaskViewer />} />
           <Route path="/network" element={<NetworkConfig />} />
           <Route path="/alerts" element={<AlertsViewer />} />
+          <Route path="/settings" element={<CustomerSettings />} />
         </Routes>
       </div>
-
-      {/* Settings Modal */}
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 };

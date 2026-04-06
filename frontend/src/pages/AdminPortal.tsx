@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import CustomerManagement from './CustomerManagement.tsx';
-import SettingsModal from '../components/SettingsModal.tsx';
+import AdminSettings from './AdminSettings.tsx';
 
 const AdminPortal: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -57,7 +56,7 @@ const AdminPortal: React.FC = () => {
         {/* Settings and Logout Buttons at Bottom */}
         <div className="border-t border-starlink-border p-3 space-y-2">
           <button
-            onClick={() => setShowSettings(true)}
+            onClick={() => navigate('/admin/settings')}
             className="w-full px-4 py-3 text-starlink-text hover:bg-starlink-light rounded transition-all duration-200 cursor-pointer bg-transparent border-none text-left"
           >
             {sidebarOpen && <span>Settings</span>}
@@ -76,11 +75,9 @@ const AdminPortal: React.FC = () => {
         <Routes>
           <Route path="/" element={<CustomerManagement />} />
           <Route path="/customers" element={<CustomerManagement />} />
+          <Route path="/settings" element={<AdminSettings />} />
         </Routes>
       </div>
-
-      {/* Settings Modal */}
-      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 };
