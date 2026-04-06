@@ -13,10 +13,8 @@ const DbTestButton: React.FC = () => {
     try {
       const response = await api.get('/health/db');
       setStatus(`DB successful! ${response.data.message}`);
-      console.log('DB test response:', response.data);
     } catch (err: any) {
       setError(`DB test failed: ${err.response?.data?.detail || err.message}`);
-      console.error('DB error:', err.response?.data || err);
     } finally {
       setLoading(false);
     }

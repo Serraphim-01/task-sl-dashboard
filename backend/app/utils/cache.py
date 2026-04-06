@@ -9,9 +9,6 @@ from functools import wraps
 from fastapi import Response
 from typing import Optional, Dict, Any
 import time
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 # ==================== CACHE CONFIGURATION ====================
@@ -60,7 +57,6 @@ async def get_cache_stats() -> Dict[str, Any]:
             "note": "Memory cache doesn't expose detailed stats. Use Redis for production."
         }
     except Exception as e:
-        logger.error(f"Error getting cache stats: {e}")
         return {"error": str(e)}
 
 
@@ -78,10 +74,8 @@ async def invalidate_cache_pattern(pattern: str) -> int:
         # Memory cache doesn't support pattern deletion natively
         # We need to track keys manually or use clear()
         # For production, use Redis backend which supports pattern deletion
-        logger.warning(f"Pattern invalidation not supported for memory cache: {pattern}")
         return 0
-    except Exception as e:
-        logger.error(f"Error invalidating cache pattern: {e}")
+    except Exception:
         return 0
 
 
@@ -89,10 +83,8 @@ async def clear_all_cache() -> bool:
     """Clear all cached data"""
     try:
         await cache.clear()
-        logger.info("All cache cleared")
         return True
-    except Exception as e:
-        logger.error(f"Error clearing cache: {e}")
+    except Exception:
         return False
 
 
@@ -105,21 +97,11 @@ async def invalidate_user_cache(user_id: int, resource_type: Optional[str] = Non
         resource_type: Optional resource type (account, device, telemetry, etc.)
     """
     try:
-        if resource_type:
-            # Invalidate specific resource type
-            key_prefix = f"{CacheConfig.PREFIX_STARLINK}:{user_id}:{resource_type}"
-            logger.info(f"Invalidating cache for {key_prefix}")
-        else:
-            # Invalidate all cache for user
-            key_prefix = f"{CacheConfig.PREFIX_STARLINK}:{user_id}"
-            logger.info(f"Invalidating all cache for user {user_id}")
-        
         # Note: For memory cache, we can't selectively delete by prefix
         # Clear all cache for simplicity (use Redis for granular control)
         await cache.clear()
         return True
-    except Exception as e:
-        logger.error(f"Error invalidating user cache: {e}")
+    except Exception:
         return False
 
 
@@ -201,8 +183,6 @@ def cache_starlink_data(
             # Layer 1: Check in-memory cache
             cached_data = await cache.get(cache_key)
             if cached_data is not None:
-                logger.debug(f"Cache HIT (Layer 1): {cache_key}")
-                
                 # Set Layer 2 headers if response object provided
                 if response and http_cache_ttl:
                     set_cache_headers(response, http_cache_ttl, http_cache_public)
@@ -212,12 +192,10 @@ def cache_starlink_data(
                 return cached_data
             
             # Cache MISS - call original function
-            logger.debug(f"Cache MISS: {cache_key}")
             result = await func(*args, **kwargs)
             
             # Store in Layer 1 cache
             await cache.set(cache_key, result, ttl=ttl)
-            logger.debug(f"Cached data for {cache_key} (TTL: {ttl}s)")
             
             # Set Layer 2 headers if response object provided
             if response and http_cache_ttl:

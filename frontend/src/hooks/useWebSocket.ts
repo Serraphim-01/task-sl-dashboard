@@ -30,7 +30,7 @@ export const useWebSocket = (
   enabled: boolean = true
 ): UseWebSocketReturn => {
   const ws = useRef<WebSocket | null>(null);
-  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
@@ -48,12 +48,10 @@ export const useWebSocket = (
     try {
       // Connect to WebSocket endpoint
       const wsUrl = `ws://localhost:8000/api/v1/ws/${userId}?token=${token}`;
-      console.log('Connecting to WebSocket:', wsUrl);
       
       ws.current = new WebSocket(wsUrl);
 
       ws.current.onopen = () => {
-        console.log('✅ WebSocket connected');
         setIsConnected(true);
         
         // Clear any reconnection timeout
@@ -66,27 +64,19 @@ export const useWebSocket = (
       ws.current.onmessage = (event) => {
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
-          console.log('📨 WebSocket message received:', data);
           
           setLastMessage(data);
           setMessages((prev) => [...prev.slice(-50), data]); // Keep last 50 messages
-          
-          // Handle different message types
-          if (data.type === 'user_status_change') {
-            console.log(`👤 User ${data.email} status changed to: ${data.status}`);
-          }
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          // Silently ignore parse errors
         }
       };
 
       ws.current.onclose = (event) => {
-        console.log('❌ WebSocket disconnected:', event.code, event.reason);
         setIsConnected(false);
         
         // Attempt to reconnect after 3 seconds
         if (enabled && event.code !== 4001 && event.code !== 4002 && event.code !== 4003) {
-          console.log('🔄 Attempting to reconnect in 3 seconds...');
           reconnectTimeout.current = setTimeout(() => {
             connect();
           }, 3000);
@@ -94,7 +84,7 @@ export const useWebSocket = (
       };
 
       ws.current.onerror = (error) => {
-        console.error('⚠️ WebSocket error:', error);
+        // Silently handle errors - reconnection will be attempted
       };
 
       // Send ping every 30 seconds to keep connection alive
@@ -109,7 +99,7 @@ export const useWebSocket = (
         clearInterval(pingInterval);
       };
     } catch (error) {
-      console.error('Error creating WebSocket connection:', error);
+      // Silently handle connection errors
     }
   }, [userId, token, enabled]);
 

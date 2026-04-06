@@ -24,46 +24,46 @@ const TelemetryDashboard: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-10 text-center"><h2 className="text-xl text-starlink-text">Loading telemetry...</h2></div>;
+    return <div className="p-6 text-center"><h2 className="text-lg text-starlink-text">Loading telemetry...</h2></div>;
   }
 
   if (error) {
     return (
-      <div className="p-10">
-        <div className="p-4 bg-red-900/50 border border-red-700 text-red-200 rounded">
+      <div className="p-4">
+        <div className="p-3 bg-red-900/50 border border-red-700 text-red-200 rounded text-sm">
           Error: {error}
         </div>
-        <button onClick={fetchTelemetry} className="mt-5 btn-secondary">Retry</button>
+        <button onClick={fetchTelemetry} className="mt-3 btn-secondary text-sm">Retry</button>
       </div>
     );
   }
 
   return (
-    <div className="p-10 max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold mb-8 text-starlink-text">Real-Time Telemetry</h2>
+    <div className="p-4 md:p-6 lg:p-10 max-w-6xl mx-auto">
+      <h2 className="text-xl md:text-3xl font-bold mb-4 md:mb-8 text-starlink-text">Real-Time Telemetry</h2>
 
       <div className="card">
         {telemetry ? (
           // Check if it's a message response (no data available)
           telemetry.message ? (
-            <div className="text-center py-10">
-              <p className="text-starlink-text-secondary text-lg">{telemetry.message}</p>
-              <p className="text-starlink-text-muted mt-2 text-sm">
+            <div className="text-center py-6">
+              <p className="text-starlink-text-secondary text-sm md:text-base">{telemetry.message}</p>
+              <p className="text-starlink-text-muted mt-2 text-xs md:text-sm">
                 Telemetry data will appear here once your Starlink devices start transmitting data.
               </p>
             </div>
           ) : (
             // Display actual telemetry data
-            <pre className="bg-starlink-light p-5 rounded overflow-auto max-h-[600px] text-sm leading-relaxed text-starlink-text">
+            <pre className="bg-starlink-light p-3 md:p-5 rounded overflow-auto max-h-[400px] md:max-h-[600px] text-xs md:text-sm leading-relaxed text-starlink-text">
               {JSON.stringify(telemetry, null, 2)}
             </pre>
           )
         ) : (
-          <p className="text-starlink-text-secondary">No telemetry data available</p>
+          <p className="text-starlink-text-secondary text-sm">No telemetry data available</p>
         )}
       </div>
 
-      <button onClick={fetchTelemetry} className="btn-primary mt-5">
+      <button onClick={fetchTelemetry} className="btn-primary mt-3 md:mt-5 text-sm">
         Refresh Data
       </button>
     </div>

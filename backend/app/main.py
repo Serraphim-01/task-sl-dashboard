@@ -14,35 +14,23 @@ async def lifespan(app: FastAPI):
     """
     # Startup: Reset all is_online flags to False
     # This ensures accurate online status tracking
-    print("\n" + "="*60)
-    print("🚀 Starting up Task SL Dashboard...")
-    print("="*60)
-    
     db = SessionLocal()
     try:
-        print("\n🔄 Resetting online status for all users...")
         db.execute(text("""
             UPDATE users 
             SET is_online = FALSE
             WHERE is_online = TRUE
         """))
         db.commit()
-        print("✅ Reset is_online to FALSE for all users")
     except Exception as e:
-        print(f"⚠️  Warning: Could not reset online status: {e}")
         db.rollback()
     finally:
         db.close()
     
-    print("="*60)
-    print("✅ Server ready!")
-    print("="*60 + "\n")
-    
     yield
     
     # Shutdown: Cleanup
-    print("\n🛑 Shutting down...")
-    print("✅ Shutdown complete!")
+    pass
 
 app = FastAPI(
     title="Starlink Partner Dashboard", 
@@ -130,7 +118,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, token: str = No
                 
     except Exception as e:
         manager.disconnect(websocket, user_id=user_id, is_admin=is_admin)
-        logger.info(f"User {user_id} WebSocket disconnected: {e}")
 
 @app.get("/health")
 async def health_check():

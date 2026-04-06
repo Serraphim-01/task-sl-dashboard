@@ -57,8 +57,8 @@ const AdminPortal: React.FC = () => {
       {/* Sidebar */}
       <div
         className={`bg-starlink-gray text-starlink-text transition-all duration-300 overflow-hidden flex flex-col ${
-          sidebarOpen ? 'w-full md:w-[220px]' : 'w-[50px]'
-        } ${sidebarOpen ? 'fixed md:relative inset-0 z-50 md:z-auto' : 'fixed md:relative inset-0 z-50 md:z-auto'}`}
+          sidebarOpen ? 'w-full md:w-[220px]' : 'w-0 md:w-[50px]'
+        } ${sidebarOpen ? 'fixed md:relative inset-0 z-50 md:z-auto' : 'fixed md:relative inset-0 z-50 md:z-auto -translate-x-full md:translate-x-0'}`}
       >
         {/* Close button for mobile */}
         {sidebarOpen && (
@@ -71,54 +71,54 @@ const AdminPortal: React.FC = () => {
         )}
         
         <div
-          className="p-4 border-b border-starlink-border cursor-pointer flex items-center justify-center"
+          className="p-3 md:p-4 border-b border-starlink-border cursor-pointer flex items-center justify-center"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           {sidebarOpen ? (
-            <h3 className="text-lg">Admin Portal</h3>
+            <h3 className="text-base md:text-lg">Admin Portal</h3>
           ) : (
-            <FaBars className="text-xl" />
+            <FaBars className="text-lg md:text-xl" />
           )}
         </div>
 
-        <nav className="py-3 flex-1">
+        <nav className="py-2 md:py-3 flex-1">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               onClick={handleNavClick}
               className={({ isActive }) =>
-                `block px-4 py-3 text-starlink-text no-underline transition-all duration-200 flex items-center ${
+                `block px-3 md:px-4 py-2 md:py-3 text-starlink-text no-underline transition-all duration-200 flex items-center ${
                   isActive
                     ? 'bg-starlink-light border-l-4 border-starlink-accent'
                     : 'border-l-4 border-transparent hover:bg-starlink-light'
                 } ${!sidebarOpen ? 'justify-center' : ''}`
               }
             >
-              <span className="text-base">{item.icon}</span>
-              {sidebarOpen && <span className="ml-3 text-sm">{item.label}</span>}
+              <span className="text-sm md:text-base">{item.icon}</span>
+              {sidebarOpen && <span className="ml-2 md:ml-3 text-xs md:text-sm">{item.label}</span>}
             </NavLink>
           ))}
         </nav>
 
         {/* Settings and Logout Buttons at Bottom */}
-        <div className="border-t border-starlink-border p-2 space-y-1">
+        <div className="border-t border-starlink-border p-2 md:p-2 space-y-1">
           <button
             onClick={() => {
               handleNavClick();
               navigate('/admin/settings');
             }}
-            className="w-full px-3 py-2 text-starlink-text hover:bg-starlink-light rounded transition-all duration-200 cursor-pointer bg-transparent border-none flex items-center"
+            className="w-full px-2 md:px-3 py-1.5 md:py-2 text-starlink-text hover:bg-starlink-light rounded transition-all duration-200 cursor-pointer bg-transparent border-none flex items-center"
           >
-            <span className="text-base"><FaCog /></span>
-            {sidebarOpen && <span className="ml-3 text-sm">Settings</span>}
+            <span className="text-sm md:text-base"><FaCog /></span>
+            {sidebarOpen && <span className="ml-2 md:ml-3 text-xs md:text-sm">Settings</span>}
           </button>
           <button
             onClick={handleLogout}
-            className="w-full px-3 py-2 text-starlink-text hover:bg-starlink-light rounded transition-all duration-200 cursor-pointer bg-transparent border-none flex items-center"
+            className="w-full px-2 md:px-3 py-1.5 md:py-2 text-starlink-text hover:bg-starlink-light rounded transition-all duration-200 cursor-pointer bg-transparent border-none flex items-center"
           >
-            <span className="text-base"><FaSignOutAlt /></span>
-            {sidebarOpen && <span className="ml-3 text-sm">Logout</span>}
+            <span className="text-sm md:text-base"><FaSignOutAlt /></span>
+            {sidebarOpen && <span className="ml-2 md:ml-3 text-xs md:text-sm">Logout</span>}
           </button>
         </div>
       </div>
@@ -126,26 +126,26 @@ const AdminPortal: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-starlink-darker w-full">
         {/* Mobile Header - Always visible on mobile */}
-        <div className="md:hidden bg-starlink-gray border-b border-starlink-border p-3 flex items-center justify-between sticky top-0 z-30">
+        <div className="md:hidden bg-starlink-gray border-b border-starlink-border p-2.5 flex items-center justify-between sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-starlink-text text-xl"
+            className="text-starlink-text text-lg"
           >
             <FaBars />
           </button>
-          <h2 className="text-base font-semibold">Admin Portal</h2>
-          <div className="w-6"></div>
+          <h2 className="text-sm font-semibold">Admin Portal</h2>
+          <div className="w-5"></div>
         </div>
         
         {/* Add padding on mobile */}
-        <div className="md:hidden p-4">
+        <div className="md:hidden p-3">
           <Routes>
             <Route path="/" element={<CustomerManagement />} />
             <Route path="/customers" element={<CustomerManagement />} />
             <Route path="/settings" element={<AdminSettings />} />
           </Routes>
         </div>
-        <div className="hidden md:block">
+        <div className="hidden md:block p-6">
           <Routes>
             <Route path="/" element={<CustomerManagement />} />
             <Route path="/customers" element={<CustomerManagement />} />

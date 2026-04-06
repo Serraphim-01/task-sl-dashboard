@@ -37,7 +37,6 @@ const CustomerSettings: React.FC = () => {
         enterprise_name: response.data.enterprise_name || ''
       });
     } catch (err) {
-      console.error('Failed to fetch user data:', err);
       setError('Failed to load user data');
     } finally {
       setLoading(false);
@@ -132,50 +131,50 @@ const CustomerSettings: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-starlink-darker p-4 md:p-8">
+    <div className="min-h-screen bg-starlink-darker p-3 md:p-6 lg:p-8 ml-[25px] md:ml-0">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="mb-6 md:mb-8">
+        <div className="mb-2 md:mb-4">
           <button
             onClick={() => navigate('/customer/portal')}
-            className="flex items-center gap-2 text-starlink-text-secondary hover:text-starlink-text transition-colors mb-4"
+            className="flex items-center gap-2 text-starlink-text-secondary hover:text-starlink-text transition-colors mb-3 text-sm"
           >
             <FaArrowLeft />
             <span>Back to Portal</span>
           </button>
-          <h1 className="text-2xl md:text-3xl font-bold text-starlink-text">Settings</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-starlink-text">Settings</h1>
         </div>
 
         {error && (
-          <div className="bg-red-900/20 border border-red-700 text-red-200 px-4 py-3 rounded mb-6">
+          <div className="bg-red-900/20 border border-red-700 text-red-200 px-3 py-2 rounded mb-4 text-sm">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-900/20 border border-green-700 text-green-200 px-4 py-3 rounded mb-6">
+          <div className="bg-green-900/20 border border-green-700 text-green-200 px-3 py-2 rounded mb-4 text-sm">
             {success}
           </div>
         )}
 
         {!showChangePassword ? (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Profile Information */}
-            <div className="card p-6">
-              <h2 className="text-xl font-semibold text-starlink-text mb-4">Profile Information</h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4 p-4 bg-starlink-light rounded-lg">
-                  <FaUser className="text-starlink-text mt-1" size={20} />
+            <div className="card p-4 md:p-6">
+              <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-3 md:mb-4">Profile Information</h2>
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex items-start gap-3 p-3 bg-starlink-light rounded-lg">
+                  <FaUser className="text-starlink-text mt-0.5" size={16} />
                   <div className="flex-1">
-                    <p className="text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Email</p>
-                    <p className="text-starlink-text font-medium">{userData.email || 'N/A'}</p>
+                    <p className="text-[10px] md:text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Email</p>
+                    <p className="text-sm md:text-base text-starlink-text font-medium">{userData.email || 'N/A'}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-4 p-4 bg-starlink-light rounded-lg">
-                  <FaUser className="text-starlink-text mt-1" size={20} />
+                <div className="flex items-start gap-3 p-3 bg-starlink-light rounded-lg">
+                  <FaUser className="text-starlink-text mt-0.5" size={16} />
                   <div className="flex-1">
-                    <p className="text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Organization</p>
-                    <p className="text-starlink-text font-medium">{userData.enterprise_name || 'N/A'}</p>
+                    <p className="text-[10px] md:text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Organization</p>
+                    <p className="text-sm md:text-base text-starlink-text font-medium">{userData.enterprise_name || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -184,18 +183,18 @@ const CustomerSettings: React.FC = () => {
             {/* Change Password Button */}
             <button
               onClick={() => setShowChangePassword(true)}
-              className="w-full btn-primary py-3 px-6"
+              className="w-full btn-primary py-2.5 px-4 md:py-3 md:px-6 text-sm"
             >
               Change Password
             </button>
           </div>
         ) : (
-          <div className="card p-6">
-            <h2 className="text-xl font-semibold text-starlink-text mb-6">Change Password</h2>
-            <form onSubmit={handleSubmitPassword} className="space-y-4">
+          <div className="card p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 md:mb-6">Change Password</h2>
+            <form onSubmit={handleSubmitPassword} className="space-y-3 md:space-y-4">
               {/* Current Password */}
               <div>
-                <label className="block text-sm text-starlink-text-secondary mb-2">
+                <label className="block text-xs md:text-sm text-starlink-text-secondary mb-1.5">
                   Current Password
                 </label>
                 <input
@@ -203,14 +202,14 @@ const CustomerSettings: React.FC = () => {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 bg-starlink-light border border-starlink-border rounded text-starlink-text focus:outline-none focus:border-starlink-text-secondary"
+                  className="w-full px-3 py-2.5 md:px-4 md:py-3 bg-starlink-light border border-starlink-border rounded text-starlink-text text-sm focus:outline-none focus:border-starlink-text-secondary"
                   placeholder="Enter current password"
                 />
               </div>
 
               {/* New Password */}
               <div>
-                <label className="block text-sm text-starlink-text-secondary mb-2">
+                <label className="block text-xs md:text-sm text-starlink-text-secondary mb-1.5">
                   New Password
                 </label>
                 <input
@@ -219,18 +218,18 @@ const CustomerSettings: React.FC = () => {
                   value={passwordData.new_password}
                   onChange={handlePasswordChange}
                   required
-                  className="w-full px-4 py-3 bg-starlink-light border border-starlink-border rounded text-starlink-text focus:outline-none focus:border-starlink-text-secondary"
+                  className="w-full px-3 py-2.5 md:px-4 md:py-3 bg-starlink-light border border-starlink-border rounded text-starlink-text text-sm focus:outline-none focus:border-starlink-text-secondary"
                   placeholder="Enter new password"
                 />
                 {passwordData.new_password && (
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-[10px] md:text-xs mb-1">
                       <span className="text-starlink-text-secondary">Password Strength</span>
                       <span className="text-starlink-text">{getStrengthText(passwordStrength)}</span>
                     </div>
-                    <div className="w-full bg-starlink-gray rounded-full h-2">
+                    <div className="w-full bg-starlink-gray rounded-full h-1.5">
                       <div
-                        className={`h-2 rounded-full transition-all duration-300 ${getStrengthColor(passwordStrength)}`}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${getStrengthColor(passwordStrength)}`}
                         style={{ width: `${passwordStrength}%` }}
                       ></div>
                     </div>
@@ -240,7 +239,7 @@ const CustomerSettings: React.FC = () => {
 
               {/* Confirm Password */}
               <div>
-                <label className="block text-sm text-starlink-text-secondary mb-2">
+                <label className="block text-xs md:text-sm text-starlink-text-secondary mb-1.5">
                   Confirm New Password
                 </label>
                 <input
@@ -249,7 +248,7 @@ const CustomerSettings: React.FC = () => {
                   value={passwordData.confirm_password}
                   onChange={handleConfirmPasswordChange}
                   required
-                  className={`w-full px-4 py-3 bg-starlink-light border rounded text-starlink-text focus:outline-none ${
+                  className={`w-full px-3 py-2.5 md:px-4 md:py-3 bg-starlink-light border rounded text-starlink-text text-sm focus:outline-none ${
                     passwordMatch === null
                       ? 'border-starlink-border focus:border-starlink-text-secondary'
                       : passwordMatch
@@ -259,15 +258,15 @@ const CustomerSettings: React.FC = () => {
                   placeholder="Confirm new password"
                 />
                 {passwordMatch === false && (
-                  <p className="text-xs text-red-500 mt-2">Passwords do not match</p>
+                  <p className="text-[10px] md:text-xs text-red-500 mt-1.5">Passwords do not match</p>
                 )}
                 {passwordMatch === true && (
-                  <p className="text-xs text-green-500 mt-2">Passwords match</p>
+                  <p className="text-[10px] md:text-xs text-green-500 mt-1.5">Passwords match</p>
                 )}
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -278,14 +277,14 @@ const CustomerSettings: React.FC = () => {
                     setPasswordMatch(null);
                     setError(null);
                   }}
-                  className="flex-1 py-3 px-6 bg-starlink-light border border-starlink-border text-starlink-text rounded hover:bg-starlink-gray transition-colors"
+                  className="flex-1 py-2.5 px-4 bg-starlink-light border border-starlink-border text-starlink-text rounded hover:bg-starlink-gray transition-colors text-sm"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !passwordMatch || passwordStrength < 75}
-                  className="flex-1 btn-primary py-3 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 btn-primary py-2.5 px-4 md:py-3 md:px-6 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   {saving ? 'Changing...' : 'Change Password'}
                 </button>

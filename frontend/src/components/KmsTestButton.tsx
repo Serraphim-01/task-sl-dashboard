@@ -13,10 +13,8 @@ const KmsTestButton: React.FC = () => {
     try {
       const response = await api.get('/auth/kms-test');
       setStatus(`KMS successful! Secrets loaded. Vault logs in backend terminal.`);
-      console.log('KMS test response:', response.data);
     } catch (err: any) {
       setError(`KMS test failed: ${err.response?.data?.detail || err.message}`);
-      console.error('KMS error:', err.response?.data || err);
     } finally {
       setLoading(false);
     }

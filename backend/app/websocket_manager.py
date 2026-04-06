@@ -5,9 +5,6 @@ Handles multiple client connections and broadcasts messages.
 from fastapi import WebSocket
 from typing import Dict, List
 import json
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
@@ -23,24 +20,20 @@ class ConnectionManager:
         
         if is_admin:
             self.admin_connections.append(websocket)
-            logger.info(f"Admin WebSocket connected. Total admin connections: {len(self.admin_connections)}")
         else:
             if user_id not in self.active_connections:
                 self.active_connections[user_id] = []
             self.active_connections[user_id].append(websocket)
-            logger.info(f"User {user_id} WebSocket connected. Total connections: {len(self.active_connections[user_id])}")
     
     def disconnect(self, websocket: WebSocket, user_id: int = None, is_admin: bool = False):
         """Remove WebSocket connection"""
         if is_admin:
             if websocket in self.admin_connections:
                 self.admin_connections.remove(websocket)
-                logger.info(f"Admin WebSocket disconnected. Total admin connections: {len(self.admin_connections)}")
         else:
             if user_id and user_id in self.active_connections:
                 if websocket in self.active_connections[user_id]:
                     self.active_connections[user_id].remove(websocket)
-                    logger.info(f"User {user_id} WebSocket disconnected. Total connections: {len(self.active_connections[user_id])}")
                 
                 # Clean up empty user connections
                 if not self.active_connections[user_id]:
@@ -50,8 +43,8 @@ class ConnectionManager:
         """Send message to a specific WebSocket connection"""
         try:
             await websocket.send_text(json.dumps(message))
-        except Exception as e:
-            logger.error(f"Error sending personal message: {e}")
+        except Exception:
+            pass
     
     async def broadcast_to_user(self, user_id: int, message: dict):
         """Send message to all connections for a specific user"""
@@ -60,8 +53,7 @@ class ConnectionManager:
             for connection in self.active_connections[user_id]:
                 try:
                     await connection.send_text(json.dumps(message))
-                except Exception as e:
-                    logger.error(f"Error sending to user {user_id}: {e}")
+                except Exception:
                     disconnected.append(connection)
             
             # Clean up disconnected connections
@@ -74,8 +66,7 @@ class ConnectionManager:
         for connection in self.admin_connections:
             try:
                 await connection.send_text(json.dumps(message))
-            except Exception as e:
-                logger.error(f"Error sending to admin: {e}")
+            except Exception:
                 disconnected.append(connection)
         
         # Clean up disconnected connections
@@ -94,20 +85,12 @@ class ConnectionManager:
             "timestamp": __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()
         }
         await self.broadcast_to_admins(message)
-        logger.info(f"Broadcasted status change for user {email}: {status}")
     
     def disconnect_all(self):
         """Disconnect all WebSocket connections on shutdown"""
-        total_customer_connections = sum(len(conns) for conns in self.active_connections.values())
-        total_admin_connections = len(self.admin_connections)
-        
-        logger.info(f"Disconnecting {total_customer_connections} customer connections and {total_admin_connections} admin connections")
-        
         # Clear all connections
         self.active_connections.clear()
         self.admin_connections.clear()
-        
-        logger.info("All WebSocket connections cleared")
 
 
 # Global WebSocket manager instance
