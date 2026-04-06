@@ -63,7 +63,7 @@ const CustomerManagement: React.FC = () => {
     if (lastMessage && lastMessage.type === 'user_status_change') {
       console.log('🔄 Real-time status update received:', lastMessage);
       
-      // Update the customer in the list
+      // Update the customer in the list silently (no alert notification)
       setCustomers((prevCustomers) =>
         prevCustomers.map((customer) =>
           customer.user_id === lastMessage.user_id
@@ -71,16 +71,6 @@ const CustomerManagement: React.FC = () => {
             : customer
         )
       );
-      
-      // Show notification
-      const statusText = lastMessage.is_online ? 'Active' : 'Inactive';
-      setMessage({
-        type: 'success',
-        text: `Customer ${lastMessage.email} is now ${statusText}`
-      });
-      
-      // Clear message after 3 seconds
-      setTimeout(() => setMessage(null), 3000);
     }
   }, [lastMessage]);
 
@@ -131,21 +121,22 @@ const CustomerManagement: React.FC = () => {
 
   const getStatusBadge = (customer: Customer) => {
     let status = '';
-    let badgeClass = '';
+    let dotColor = '';
 
     if (!customer.is_active && !customer.last_login_at) {
       status = 'Unactivated';
-      badgeClass = 'bg-gray-600 text-white';
+      dotColor = 'bg-gray-600';
     } else if (customer.is_online) {
       status = 'Active';
-      badgeClass = 'bg-green-600 text-white';
+      dotColor = 'bg-green-600';
     } else {
       status = 'Inactive';
-      badgeClass = 'bg-yellow-600 text-white';
+      dotColor = 'bg-yellow-600';
     }
 
     return (
-      <span className={`btn-primary py-1 px-3 text-xs inline-block ${badgeClass}`}>
+      <span className="btn-primary py-2 px-4 text-sm inline-flex items-center gap-2">
+        <span className={`w-2 h-2 rounded-full ${dotColor}`}></span>
         {status}
       </span>
     );

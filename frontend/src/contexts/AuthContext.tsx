@@ -6,6 +6,8 @@ interface User {
   role: 'admin' | 'customer' | 'guest';
   token: string | null;
   userId: number | null;
+  email?: string;
+  enterpriseName?: string;
   mustChangePassword?: boolean;
 }
 
@@ -68,6 +70,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role: userResponse.data.is_admin ? 'admin' : 'customer', 
         token: 'authenticated',
         userId: userResponse.data.user_id || null,
+        email: userResponse.data.email || email,
+        enterpriseName: userResponse.data.enterprise_name || undefined,
         mustChangePassword: userResponse.data.must_change_password
       });
     } catch (error) {

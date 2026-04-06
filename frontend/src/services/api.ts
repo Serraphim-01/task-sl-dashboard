@@ -43,6 +43,16 @@ export const checkForgotPasswordStatus = async (email: string) => {
   return response.data;
 };
 
+// Reset password via forgot password flow (public endpoint)
+export const resetForgotPassword = async (email: string, newPassword: string, confirmPassword: string) => {
+  const response = await api.post('/auth/forgot-password/reset', {
+    email,
+    new_password: newPassword,
+    confirm_password: confirmPassword
+  });
+  return response.data;
+};
+
 // Get WebSocket token for real-time updates
 export const getWebSocketToken = async () => {
   const response = await api.get('/auth/ws-token');

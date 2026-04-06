@@ -1767,6 +1767,34 @@ For issues or questions:
 
 ## Version History
 
+- **v2.2.0** (April 6, 2026): Settings Modal & UI Enhancements
+  - **Settings Modal Implementation**:
+    - Added Settings button to Customer Portal sidebar (text-based, above Logout)
+    - Added Settings button to Admin Portal sidebar (text-based, above Logout)
+    - Profile information display (email for all, enterprise name for customers)
+    - Secure password change with current password verification
+    - Password strength indicator with real-time validation
+  - **Toast Notification System**:
+    - Replaced browser alerts with elegant toast notifications
+    - Slide-in animation from right side
+    - Three types: success (green), error (red), info (blue)
+    - Auto-dismiss after 5 seconds with manual close option
+    - Glassmorphism design with backdrop blur
+  - **UI/UX Improvements**:
+    - Removed customer status alert notifications from Admin Page
+    - Updated status badge styling with colored dot indicators
+    - Status buttons now match Delete button styling
+    - Removed old Sidebar.tsx with KMS test button (eliminated confusion)
+    - Each portal now has its own inline sidenav
+  - **Security Enhancements**:
+    - Forgot password now uses dedicated unauthenticated endpoint
+    - Fixed 401 Unauthorized error in forgot password flow
+    - Password reset without requiring login credentials
+  - **Component Architecture**:
+    - Created reusable Toast component for notifications
+    - Created SettingsModal component for user settings
+    - Removed deprecated Sidebar.tsx and Sidebar.css files
+
 - **v2.1.0** (April 6, 2026): Security & Status Accuracy Enhancements
   - **Admin Login Portal Separation**:
     - Admin accounts blocked from customer login endpoint
@@ -1834,6 +1862,6 @@ For issues or questions:
 
 ---
 
-**Last Updated**: April 6, 2026 (v2.1.0)  
+**Last Updated**: April 6, 2026 (v2.2.0)  
 **Maintained By**: Development Team  
 **License**: Proprietary

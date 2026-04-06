@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import { changePassword, checkForgotPasswordStatus } from '../services/api.ts';
+import { changePassword, checkForgotPasswordStatus, resetForgotPassword } from '../services/api.ts';
 import { FaUserShield } from 'react-icons/fa';
+import Toast from '../components/Toast.tsx';
 
 const CustomerLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -48,6 +49,11 @@ const CustomerLogin: React.FC = () => {
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [resetPasswordStrength, setResetPasswordStrength] = useState(0);
   const [resetPasswordMatch, setResetPasswordMatch] = useState<boolean | null>(null);
+  
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -252,18 +258,22 @@ const CustomerLogin: React.FC = () => {
     setForgotError(null);
 
     try {
-      await changePassword({
-        current_password: '', // Not needed for reset
-        new_password: resetPasswordData.new_password,
-        confirm_password: resetPasswordData.confirm_password,
-      });
+      await resetForgotPassword(
+        forgotEmail,
+        resetPasswordData.new_password,
+        resetPasswordData.confirm_password
+      );
       
       setShowForgotPassword(false);
       setForgotStep(1);
       setForgotEmail('');
       setResetPasswordData({ new_password: '', confirm_password: '' });
       setError(null);
-      alert('Password reset successfully! You can now login with your new password.');
+      
+      // Show success toast
+      setToastMessage('Password reset successfully! You can now login with your new password.');
+      setToastType('success');
+      setShowToast(true);
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Failed to reset password.';
       setForgotError(errorMessage);
@@ -644,6 +654,15 @@ const CustomerLogin: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        duration={5000}
+      />
     </div>
   );
 };

@@ -59,6 +59,16 @@ class ForgotPasswordStatusResponse(BaseModel):
     can_reset: bool
 
 
+class ForgotPasswordResetRequest(BaseModel):
+    email: str
+    new_password: str
+    confirm_password: str
+
+
+class ForgotPasswordResetResponse(BaseModel):
+    message: str
+
+
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest, response: Response):
     """
@@ -357,6 +367,67 @@ async def check_forgot_password_status(request: ForgotPasswordStatusRequest):
             
     except Exception as e:
         logger.error(f"Error checking forgot password status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    finally:
+        db.close()
+
+
+@router.post("/forgot-password/reset", response_model=ForgotPasswordResetResponse)
+async def reset_forgot_password(request: ForgotPasswordResetRequest):
+    """
+    Reset password for forgot password flow.
+    This endpoint does NOT require authentication - it uses email verification.
+    """
+    db = SessionLocal()
+    try:
+        # Find user by email
+        user = db.query(User).filter(User.email == request.email).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="No account found with this email")
+        
+        # Check if user is activated (has a password set)
+        if not user.hashed_password:
+            raise HTTPException(
+                status_code=400, 
+                detail="This account is not activated. Please use First Login to set your password."
+            )
+        
+        # Verify passwords match
+        if request.new_password != request.confirm_password:
+            raise HTTPException(status_code=400, detail="Passwords do not match")
+        
+        # Validate new password strength
+        if len(request.new_password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+        
+        if not any(c.isupper() for c in request.new_password):
+            raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter")
+        
+        if not any(c.islower() for c in request.new_password):
+            raise HTTPException(status_code=400, detail="Password must contain at least one lowercase letter")
+        
+        if not any(c.isdigit() for c in request.new_password):
+            raise HTTPException(status_code=400, detail="Password must contain at least one digit")
+        
+        # Hash and set new password
+        user.hashed_password = hash_password(request.new_password)
+        user.must_change_password = False
+        user.is_active = True
+        db.commit()
+        
+        logger.info(f"Password reset successfully for user: {user.email}")
+        
+        return ForgotPasswordResetResponse(
+            message="Password reset successfully. You can now login with your new password."
+        )
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error resetting password: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
     finally:
         db.close()
