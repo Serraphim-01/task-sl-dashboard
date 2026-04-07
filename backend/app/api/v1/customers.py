@@ -7,7 +7,7 @@ from app.database import SessionLocal
 from app.api.v1.auth import get_current_admin_user
 import re
 import logging
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ class CreateCustomerRequest(BaseModel):
     enterprise_name: str
     starlink_client_id: str
     starlink_client_secret: str
+
 
 
 class CreateCustomerResponse(BaseModel):
@@ -36,8 +37,8 @@ class UserListItem(BaseModel):
     is_active: bool
     is_online: bool
     must_change_password: bool
-    last_login_at: datetime | None = None
-    created_at: datetime | None = None
+    last_login_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
     
     @property
     def status(self) -> str:
