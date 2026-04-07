@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy import text
+import os
 
 from app.database import get_db, SessionLocal
 from app.api.v1 import customers_router, telemetry_router, health_router, customer_router
@@ -38,10 +39,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware (already present)
+# CORS middleware - Environment-aware
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

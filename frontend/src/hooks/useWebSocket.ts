@@ -44,10 +44,11 @@ export const useWebSocket = (
     if (ws.current) {
       ws.current.close();
     }
-
+    
     try {
       // Connect to WebSocket endpoint
-      const wsUrl = `ws://localhost:8000/api/v1/ws/${userId}?token=${token}`;
+      const wsBaseUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+      const wsUrl = `${wsBaseUrl}/api/v1/ws/${userId}?token=${token}`;
       
       ws.current = new WebSocket(wsUrl);
 

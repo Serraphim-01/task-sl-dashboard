@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',  // FastAPI backend URL
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,  // Include HTTP-only cookies in requests
+  withCredentials: true,
 });
 
 // No need for request interceptor - backend reads HTTP-only cookie automatically

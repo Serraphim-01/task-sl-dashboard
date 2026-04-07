@@ -1,6 +1,14 @@
 # Build stage
 FROM node:20-alpine AS build
 
+# Build arguments for environment variables
+ARG REACT_APP_API_URL
+ARG REACT_APP_WS_URL
+
+# Set environment variables from build args
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_WS_URL=$REACT_APP_WS_URL
+
 WORKDIR /app
 
 COPY package*.json ./
