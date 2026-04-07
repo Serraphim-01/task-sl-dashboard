@@ -32,7 +32,7 @@ const AdminLogin: React.FC = () => {
     setError(null);
 
     try {
-      await login(formData.email, formData.password);
+      await login(formData.email, formData.password, true); // isAdminLogin = true
       navigate('/admin/customers');
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Admin login failed. Please check your credentials.';

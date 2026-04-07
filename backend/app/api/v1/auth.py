@@ -162,6 +162,73 @@ async def login(request: LoginRequest, response: Response):
         db.close()
 
 
+@router.post("/admin/login", response_model=LoginResponse)
+async def admin_login(request: LoginRequest, response: Response):
+    """
+    Authenticate admin users and return JWT token in HTTP-only cookie.
+    Only admin users can use this endpoint.
+    """
+    db = SessionLocal()
+    try:
+        # Look up user by email
+        user = db.query(User).filter(User.email == request.email).first()
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Only allow admin users
+        if not user.is_admin:
+            raise HTTPException(
+                status_code=403, 
+                detail="Customer accounts cannot log in through the admin portal. Please use the Customer Login portal instead."
+            )
+        
+        # Verify password
+        if not verify_password(request.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Update last login timestamp and set user as online
+        user.last_login_at = datetime.now(timezone.utc)
+        user.is_online = True  # User is now online
+        db.commit()
+        
+        # Create JWT token
+        token_data = {
+            "user_id": user.id,
+            "email": user.email,
+            "is_admin": user.is_admin,
+            "must_change_password": user.must_change_password
+        }
+        access_token = create_access_token(data=token_data)
+        
+        # Broadcast status change to other admins via WebSocket
+        await manager.broadcast_user_status_change(
+            user_id=user.id,
+            email=user.email,
+            is_online=True,
+            status="Active"
+        )
+        
+        # Set HTTP-only cookie with secure flags
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=False,  # Set to True in production with HTTPS
+            samesite="strict",
+            max_age=86400  # 24 hours
+        )
+        
+        return LoginResponse(
+            message="Admin login successful",
+            user_id=user.id,
+            email=user.email,
+            is_admin=user.is_admin
+        )
+    finally:
+        db.close()
+
+
 def get_current_user(
     request: Request,
     access_token: Optional[str] = Cookie(None)

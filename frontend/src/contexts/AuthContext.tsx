@@ -13,7 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, isAdminLogin?: boolean) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
   isAuthenticated: boolean;
@@ -60,9 +60,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     restoreSession();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, isAdminLogin: boolean = false) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const endpoint = isAdminLogin ? '/auth/admin/login' : '/auth/login';
+      const response = await api.post(endpoint, { email, password });
       // Token is set as HTTP-only cookie by backend
       // Fetch user info to confirm authentication and get role
       const userResponse = await api.get('/auth/me');

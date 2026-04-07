@@ -10,6 +10,12 @@ const api = axios.create({
 
 // No need for request interceptor - backend reads HTTP-only cookie automatically
 
+// Admin login (separate endpoint for admin users)
+export const loginAdmin = async (email: string, password: string) => {
+  const response = await api.post('/auth/admin/login', { email, password });
+  return response.data;
+};
+
 // Customer login
 export const loginCustomer = async (email: string, password: string) => {
   const response = await api.post('/auth/login', { email, password });
@@ -68,12 +74,6 @@ export const getCustomerAccount = async () => {
 // Get customer Starlink telemetry
 export const getCustomerTelemetry = async () => {
   const response = await api.get('/customer/starlink/telemetry');
-  return response.data;
-};
-
-// Admin login (same endpoint as customer, role determined by backend)
-export const loginAdmin = async (email: string, password: string) => {
-  const response = await api.post('/auth/login', { email, password });
   return response.data;
 };
 
