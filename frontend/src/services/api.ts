@@ -1,5 +1,12 @@
 import axios from 'axios';
 
+// Declare process for Create React App environment variables
+declare const process: {
+  env: {
+    REACT_APP_API_URL: string;
+  };
+};
+
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
   headers: {
