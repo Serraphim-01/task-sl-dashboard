@@ -13,5 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Environment variable for backend port
+ARG BACKEND_PORT=8000
+ENV BACKEND_PORT=${BACKEND_PORT}
+
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${BACKEND_PORT:-8000}"]

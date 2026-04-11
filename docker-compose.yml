@@ -3,15 +3,15 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: starlink_db
+    container_name: ${PROJECT_NAME:-starlink}_db
     environment:
       POSTGRES_USER: ${DB_USER:-starlink}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
       POSTGRES_DB: ${DB_NAME:-starlink_dashboard}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${PROJECT_NAME:-starlink}_postgres_data:/var/lib/postgresql/data
     ports:
-      - "5434:5432"
+      - "${DB_EXTERNAL_PORT:-5434}:${DB_PORT:-5432}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-starlink} -d ${DB_NAME:-starlink_dashboard}"]
       interval: 10s
@@ -20,34 +20,49 @@ services:
     restart: unless-stopped
 
   backend:
-    build: ./backend
-    container_name: starlink_backend
+    build:
+      context: ./backend
+      args:
+        - BACKEND_PORT=${BACKEND_PORT:-8000}
+    container_name: ${PROJECT_NAME:-starlink}_backend
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-starlink}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-starlink_dashboard}
+      - DATABASE_URL=postgresql://${DB_USER:-starlink}:${DB_PASSWORD:-password}@db:${DB_PORT:-5432}/${DB_NAME:-starlink_dashboard}
       - VAULT_URL=${VAULT_URL}
-      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}      # Optional for local dev with Azure
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
       - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      - ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
+      - BACKEND_PORT=${BACKEND_PORT:-8000}
     ports:
-      - "8000:8000"
+      - "${BACKEND_EXTERNAL_PORT:-8000}:${BACKEND_PORT:-8000}"
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./backend:/app   # For live code reload during development
+    # Remove volume mount in production for security
+    # volumes:
+    #   - ./backend:/app
     restart: unless-stopped
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Remove --reload in production
+    command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${BACKEND_PORT:-8000}"
 
   frontend:
-    build: ./frontend
-    container_name: starlink_frontend
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000/api/v1}
+        - REACT_APP_WS_URL=${REACT_APP_WS_URL:-ws://localhost:8000}
+    container_name: ${PROJECT_NAME:-starlink}_frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_EXTERNAL_PORT:-80}:80"
+      - "${FRONTEND_HTTPS_PORT:-443}:443"
     depends_on:
       - backend
-    # For development, you can also use a dev server with hot reload
-    # To enable development mode, override command below
-    # command: npm start
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000/api/v1}
+      - REACT_APP_WS_URL=${REACT_APP_WS_URL:-ws://localhost:8000}
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  ${PROJECT_NAME:-starlink}_postgres_data:
