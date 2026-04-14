@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import CustomerManagement from './CustomerManagement.tsx';
+import ServiceLines from './ServiceLines.tsx';
+import ServicePlan from './ServicePlan.tsx';
 import AdminSettings from './AdminSettings.tsx';
-import { FaUsers, FaCog, FaSignOutAlt, FaBars } from 'react-icons/fa';
+import { FaUsers, FaCog, FaSignOutAlt, FaBars, FaLaptop } from 'react-icons/fa';
 
 const AdminPortal: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -31,6 +33,7 @@ const AdminPortal: React.FC = () => {
 
   const navItems = [
     { path: '/admin/customers', label: 'Customer Management', icon: <FaUsers /> },
+    { path: '/admin/service-lines', label: 'Service Lines', icon: <FaLaptop /> },
   ];
 
   const handleLogout = () => {
@@ -142,6 +145,8 @@ const AdminPortal: React.FC = () => {
           <Routes>
             <Route path="/" element={<CustomerManagement />} />
             <Route path="/customers" element={<CustomerManagement />} />
+            <Route path="/service-lines" element={<ServiceLines />} />
+            <Route path="/service-plan/:serviceLineNumber" element={<ServicePlan />} />
             <Route path="/settings" element={<AdminSettings />} />
           </Routes>
         </div>
@@ -149,6 +154,8 @@ const AdminPortal: React.FC = () => {
           <Routes>
             <Route path="/" element={<CustomerManagement />} />
             <Route path="/customers" element={<CustomerManagement />} />
+            <Route path="/service-lines" element={<ServiceLines />} />
+            <Route path="/service-plan/:serviceLineNumber" element={<ServicePlan />} />
             <Route path="/settings" element={<AdminSettings />} />
           </Routes>
         </div>

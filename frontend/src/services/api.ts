@@ -112,6 +112,30 @@ export const deleteUser = async (userId: number) => {
   return response.data;
 };
 
+// Get all service lines (admin only)
+export const getServiceLines = async (params?: {
+  addressReferenceId?: string;
+  searchString?: string;
+  dataPoolId?: string;
+  page?: number;
+  orderByCreatedDateDescending?: boolean;
+}) => {
+  const response = await api.get('/admin/service-lines', { params });
+  return response.data;
+};
+
+// Get specific service line details (admin only)
+export const getServiceLine = async (serviceLineNumber: string) => {
+  const response = await api.get(`/admin/service-lines/${serviceLineNumber}`);
+  return response.data;
+};
+
+// Get billing partial periods for a service line (admin only)
+export const getBillingPartialPeriods = async (serviceLineNumber: string) => {
+  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/billing-partial-periods`);
+  return response.data;
+};
+
 // ==================== STARLINK V2 API ENDPOINTS (Customer - Read Only) ====================
 
 // Account endpoints

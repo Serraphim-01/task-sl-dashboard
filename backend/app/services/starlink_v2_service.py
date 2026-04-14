@@ -247,3 +247,67 @@ class StarlinkV2Service:
     async def acknowledge_alert(self, alert_id: str) -> Dict[str, Any]:
         """Acknowledge an alert"""
         return await self._make_request("POST", f"/alerts/{alert_id}/acknowledge")
+    
+    # ==================== SERVICE LINES ====================
+    
+    async def get_service_lines(
+        self,
+        address_reference_id: Optional[str] = None,
+        search_string: Optional[str] = None,
+        data_pool_id: Optional[str] = None,
+        page: int = 0,
+        order_by_created_date_descending: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Get all service lines with optional filters
+        
+        Args:
+            address_reference_id: Filter by Address Reference ID
+            search_string: Filter by fuzzy match of nickname, or exact match on UT ID, 
+                          UT nickname, UT serial number, or service line number
+            data_pool_id: Filter for service lines on a given data pool
+            page: Page index (starts at 0), page size is 100
+            order_by_created_date_descending: Sort by created date descending
+            
+        Returns:
+            Service lines response with pagination info
+        """
+        params = {
+            "page": page,
+            "orderByCreatedDateDescending": order_by_created_date_descending
+        }
+        
+        if address_reference_id:
+            params["addressReferenceId"] = address_reference_id
+        if search_string:
+            params["searchString"] = search_string
+        if data_pool_id:
+            params["dataPoolId"] = data_pool_id
+        
+        return await self._make_request("GET", "/service-lines", params=params)
+    
+    async def get_service_line(self, service_line_number: str) -> Dict[str, Any]:
+        """
+        Get detailed information about a specific service line
+        
+        Args:
+            service_line_number: Service line number (required)
+            
+        Returns:
+            Service line details including product info, dates, aviation metadata, and data blocks
+        """
+        return await self._make_request("GET", f"/service-lines/{service_line_number}")
+    
+    async def get_billing_partial_periods(self, service_line_number: str) -> Dict[str, Any]:
+        """
+        Get the previous billing partial periods for a service line
+        
+        Args:
+            service_line_number: Service line number (required)
+            
+        Returns:
+            List of billing partial periods with product reference ID, period start, and period end
+            
+        Reference: https://starlink.readme.io/docs/understanding-proration
+        """
+        return await self._make_request("GET", f"/service-lines/{service_line_number}/billing-cycles/partial-periods")
