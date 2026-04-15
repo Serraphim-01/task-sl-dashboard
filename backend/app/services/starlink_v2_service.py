@@ -350,3 +350,38 @@ class StarlinkV2Service:
         
         params = {"serviceLineNumbers": service_line_numbers}
         return await self._make_request("GET", "/user-terminals", params=params)
+    
+    async def get_user_terminal_details(self, user_terminal_id: str) -> Dict[str, Any]:
+        """
+        Get detailed information for a specific user terminal including L2VPN configuration
+        
+        Args:
+            user_terminal_id: User terminal ID (required)
+            
+        Returns:
+            Complete user terminal details including l2VpnCircuits array
+            
+        Reference: https://starlink.com/api/public/v2/user-terminals?userTerminalIds=YOUR_USER_TERMINAL_ID
+        """
+        logger.info(f"\n[STARLINK API] Fetching user terminal details: {user_terminal_id}")
+        logger.info(f"[STARLINK API] Endpoint: GET /user-terminals?userTerminalIds={user_terminal_id}\n")
+        
+        params = {"userTerminalIds": user_terminal_id}
+        return await self._make_request("GET", "/user-terminals", params=params)
+    
+    async def get_router_details(self, router_id: str) -> Dict[str, Any]:
+        """
+        Get detailed information for a specific router
+        
+        Args:
+            router_id: Router ID (required)
+            
+        Returns:
+            Complete router details including routerId, nickname, userTerminalId, configId, hardwareVersion, lastBonded
+            
+        Reference: https://starlink.com/api/public/v2/routers/{routerId}
+        """
+        logger.info(f"\n[STARLINK API] Fetching router details: {router_id}")
+        logger.info(f"[STARLINK API] Endpoint: GET /routers/{router_id}\n")
+        
+        return await self._make_request("GET", f"/routers/{router_id}")

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getServiceLine, getBillingPartialPeriods, getCurrentPlan, getUserTerminals } from '../services/api.ts';
+import { getServiceLine, getBillingPartialPeriods, getCurrentPlan, getUserTerminals, getUserTerminalDetails, getRouterDetails } from '../services/api.ts';
 import { 
   FaArrowLeft, 
   FaBuilding, 
@@ -15,7 +15,8 @@ import {
   FaClock,
   FaStar,
   FaDollarSign,
-  FaChartLine
+  FaChartLine,
+  FaEye
 } from 'react-icons/fa';
 
 interface DataBlock {
@@ -134,7 +135,15 @@ interface UserTerminal {
     longitude: number;
   };
   serviceLineNumbers?: string[];
-  [key: string]: any;
+  l2VpnCircuits?: any[];
+  routers?: Array<{
+    routerId: string;
+    nickname?: string;
+    userTerminalId?: string;
+    configId?: string;
+    hardwareVersion?: string;
+    lastBonded?: string;
+  }>;
 }
 
 interface UserTerminalsResponse {
@@ -158,6 +167,10 @@ const ServicePlan: React.FC = () => {
   const [billingPeriodsData, setBillingPeriodsData] = useState<BillingPartialPeriodsResponse | null>(null);
   const [currentPlanData, setCurrentPlanData] = useState<CurrentPlanResponse | null>(null);
   const [userTerminalsData, setUserTerminalsData] = useState<UserTerminalsResponse | null>(null);
+  const [selectedTerminalDetails, setSelectedTerminalDetails] = useState<any>(null);
+  const [loadingTerminalDetails, setLoadingTerminalDetails] = useState<string | null>(null);
+  const [selectedRouterDetails, setSelectedRouterDetails] = useState<any>(null);
+  const [loadingRouterDetails, setLoadingRouterDetails] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -236,6 +249,33 @@ const ServicePlan: React.FC = () => {
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const fetchTerminalDetails = async (userTerminalId: string) => {
+    setLoadingTerminalDetails(userTerminalId);
+    setSelectedTerminalDetails(null);
+    try {
+      const response = await getUserTerminalDetails(userTerminalId);
+      setSelectedTerminalDetails(response);
+    } catch (err: any) {
+      console.error('Failed to fetch terminal details:', err);
+      setError(err.response?.data?.detail || 'Failed to fetch terminal details');
+    } finally {
+      setLoadingTerminalDetails(null);
+    }
+  };
+
+  const fetchRouterDetails = async (routerId: string) => {
+    setLoadingRouterDetails(routerId);
+    setSelectedRouterDetails(null);
+    try {
+      const response = await getRouterDetails(routerId);
+      setSelectedRouterDetails(response);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to fetch router details');
+    } finally {
+      setLoadingRouterDetails(null);
+    }
   };
 
   if (loading) {
@@ -793,10 +833,234 @@ const ServicePlan: React.FC = () => {
                           <p className="text-xs text-starlink-text">{terminal.status}</p>
                         </div>
                       )}
+
+                      {terminal.routers && terminal.routers.length > 0 && (() => {
+                        const router = terminal.routers![0];
+                        return (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Router ID</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-starlink-text font-mono break-all flex-1">{router.routerId}</p>
+                            <button
+                              onClick={() => fetchRouterDetails(router.routerId)}
+                              disabled={loadingRouterDetails === router.routerId}
+                              className="p-1.5 text-starlink-text-secondary hover:text-starlink-accent transition-colors disabled:opacity-50"
+                              title="View Router Details"
+                            >
+                              {loadingRouterDetails === router.routerId ? (
+                                <span className="animate-spin">⏳</span>
+                              ) : (
+                                <FaEye />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        );
+                      })()}
                     </div>
+                    
+                    {/* View L2VPN Details Button */}
+                    <button
+                      onClick={() => fetchTerminalDetails(terminal.userTerminalId)}
+                      disabled={loadingTerminalDetails === terminal.userTerminalId}
+                      className="btn-primary py-1.5 px-3 text-xs w-full mt-3 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {loadingTerminalDetails === terminal.userTerminalId ? (
+                        <>
+                          <span className="animate-spin">⏳</span>
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <FaDatabase />
+                          View L2VPN Configuration
+                        </>
+                      )}
+                    </button>
                   </div>
                 ))}
               </div>
+
+              {/* L2VPN Configuration Details */}
+              {selectedTerminalDetails && (
+                <div className="card p-4 md:p-6 border-2 border-starlink-accent">
+                  <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
+                    <FaDatabase className="text-starlink-accent" />
+                    L2VPN Configuration
+                  </h2>
+                
+                {selectedTerminalDetails.content && selectedTerminalDetails.content.results && selectedTerminalDetails.content.results.length > 0 ? (
+                  (() => {
+                    const terminalData = selectedTerminalDetails.content.results[0];
+                    const l2VpnCircuits = terminalData.l2VpnCircuits || [];
+                    
+                    return (
+                      <div className="space-y-4">
+                        {/* Terminal Info */}
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-xs text-starlink-text-secondary mb-2">
+                            L2VPN configuration for terminal: <span className="font-mono font-semibold text-starlink-text">{terminalData.userTerminalId}</span>
+                          </p>
+                        </div>
+
+                        {/* L2VPN Circuits */}
+                        {l2VpnCircuits.length > 0 ? (
+                          <div>
+                            <h3 className="text-sm font-semibold text-starlink-text mb-3">
+                              L2VPN Circuits ({l2VpnCircuits.length})
+                            </h3>
+                            <div className="space-y-3">
+                              {l2VpnCircuits.map((circuit: any, index: number) => (
+                                <div key={index} className="p-4 bg-starlink-light rounded border border-starlink-border">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <span className="px-2 py-1 bg-starlink-accent text-white text-xs rounded font-semibold">
+                                      Circuit #{index + 1}
+                                    </span>
+                                    {circuit.status && (
+                                      <span className={`px-2 py-1 rounded-full text-xs ${
+                                        circuit.status === 'ACTIVE' || circuit.status === 'active'
+                                          ? 'bg-green-600 text-white'
+                                          : 'bg-gray-600 text-white'
+                                      }`}>
+                                        {circuit.status}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {circuit.circuitId && (
+                                      <div>
+                                        <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Circuit ID</p>
+                                        <p className="text-xs text-starlink-text font-mono break-all">{circuit.circuitId}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {circuit.name && (
+                                      <div>
+                                        <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Name</p>
+                                        <p className="text-xs text-starlink-text">{circuit.name}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {circuit.vlanId !== undefined && (
+                                      <div>
+                                        <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">VLAN ID</p>
+                                        <p className="text-xs text-starlink-text font-mono">{circuit.vlanId}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {circuit.description && (
+                                      <div className="md:col-span-2">
+                                        <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Description</p>
+                                        <p className="text-xs text-starlink-text">{circuit.description}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Add any other circuit properties */}
+                                    {Object.keys(circuit).filter(key => 
+                                      !['circuitId', 'name', 'vlanId', 'description', 'status'].includes(key)
+                                    ).length > 0 && (
+                                      <div className="md:col-span-2">
+                                        <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Additional Configuration</p>
+                                        <pre className="text-xs text-starlink-text font-mono bg-starlink-darker p-2 rounded overflow-x-auto">
+                                          {JSON.stringify(
+                                            Object.fromEntries(
+                                              Object.keys(circuit)
+                                                .filter(key => !['circuitId', 'name', 'vlanId', 'description', 'status'].includes(key))
+                                                .map(key => [key, circuit[key]])
+                                            ),
+                                            null,
+                                            2
+                                          )}
+                                        </pre>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
+                            <FaDatabase className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
+                            <p className="text-sm text-starlink-text-secondary">
+                              No L2VPN circuits configured for this terminal.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="p-6 text-center text-starlink-text-secondary">
+                    <p>No L2VPN configuration data available.</p>
+                  </div>
+                )}
+                </div>
+              )}
+
+              {/* Router Details */}
+              {selectedRouterDetails && (
+                <div className="card p-4 md:p-6 border-2 border-starlink-accent">
+                  <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
+                    <FaEye className="text-starlink-accent" />
+                    Router Details
+                  </h2>
+                
+                {selectedRouterDetails.content ? (
+                  <div className="space-y-4">
+                    {/* Router Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedRouterDetails.content.routerId && (
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Router ID</p>
+                          <p className="text-sm text-starlink-text font-mono break-all">{selectedRouterDetails.content.routerId}</p>
+                        </div>
+                      )}
+                      
+                      {selectedRouterDetails.content.nickname && (
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Nickname</p>
+                          <p className="text-sm text-starlink-text">{selectedRouterDetails.content.nickname}</p>
+                        </div>
+                      )}
+                      
+                      {selectedRouterDetails.content.userTerminalId && (
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">User Terminal ID</p>
+                          <p className="text-sm text-starlink-text font-mono break-all">{selectedRouterDetails.content.userTerminalId}</p>
+                        </div>
+                      )}
+                      
+                      {selectedRouterDetails.content.configId && (
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Config ID</p>
+                          <p className="text-sm text-starlink-text font-mono break-all">{selectedRouterDetails.content.configId}</p>
+                        </div>
+                      )}
+                      
+                      {selectedRouterDetails.content.hardwareVersion && (
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Hardware Version</p>
+                          <p className="text-sm text-starlink-text">{selectedRouterDetails.content.hardwareVersion}</p>
+                        </div>
+                      )}
+                      
+                      {selectedRouterDetails.content.lastBonded && (
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Last Bonded</p>
+                          <p className="text-sm text-starlink-text">{formatDate(selectedRouterDetails.content.lastBonded)}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-starlink-text-secondary">
+                    <p>No router details available.</p>
+                  </div>
+                )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">

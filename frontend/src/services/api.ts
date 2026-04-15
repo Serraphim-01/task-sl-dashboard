@@ -109,37 +109,49 @@ export const deleteUser = async (userId: number) => {
 
 // Get all service lines (admin only)
 export const getServiceLines = async (params?: {
-  addressReferenceId?: string;
-  searchString?: string;
-  dataPoolId?: string;
+  address_reference_id?: string;
+  search_string?: string;
+  data_pool_id?: string;
   page?: number;
-  orderByCreatedDateDescending?: boolean;
+  order_by_created_date_descending?: boolean;
 }) => {
   const response = await api.get('/admin/service-lines', { params });
   return response.data;
 };
 
-// Get specific service line details (admin only)
+// Get specific service line (admin only)
 export const getServiceLine = async (serviceLineNumber: string) => {
   const response = await api.get(`/admin/service-lines/${serviceLineNumber}`);
   return response.data;
 };
 
-// Get billing partial periods for a service line (admin only)
+// Get billing partial periods (admin only)
 export const getBillingPartialPeriods = async (serviceLineNumber: string) => {
   const response = await api.get(`/admin/service-lines/${serviceLineNumber}/billing-partial-periods`);
   return response.data;
 };
 
-// Get current plan details for a service line (admin only)
+// Get current plan (admin only)
 export const getCurrentPlan = async (serviceLineNumber: string) => {
   const response = await api.get(`/admin/service-lines/${serviceLineNumber}/current-plan`);
   return response.data;
 };
 
-// Get user terminals for a service line (admin only)
+// Get user terminals (admin only)
 export const getUserTerminals = async (serviceLineNumber: string) => {
   const response = await api.get(`/admin/service-lines/${serviceLineNumber}/user-terminals`);
+  return response.data;
+};
+
+// Get user terminal details (admin only)
+export const getUserTerminalDetails = async (userTerminalId: string) => {
+  const response = await api.get(`/admin/user-terminals/${userTerminalId}`);
+  return response.data;
+};
+
+// Get router details (admin only)
+export const getRouterDetails = async (routerId: string) => {
+  const response = await api.get(`/admin/routers/${routerId}`);
   return response.data;
 };
 

@@ -487,3 +487,106 @@ async def get_user_terminals(
         logger.error(f"Error fetching user terminals: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch user terminals: {str(e)}")
 
+
+@router.get("/admin/user-terminals/{user_terminal_id}")
+async def get_user_terminal_details(
+    user_terminal_id: str,
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Admin endpoint to get detailed information for a specific user terminal.
+    Includes L2VPN configuration (l2VpnCircuits array) and all terminal details.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Get admin's own credentials if they have them
+        if current_admin.kms_client_id_secret_name and current_admin.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_admin.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_admin.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_user_terminal_details(user_terminal_id)
+                
+                return response
+        
+        # If admin doesn't have credentials, try first customer
+        db = SessionLocal()
+        try:
+            first_customer = db.query(User).filter(User.is_admin == False).first()
+            if first_customer:
+                client_id = await kms.get_secret(first_customer.kms_client_id_secret_name)
+                client_secret = await kms.get_secret(first_customer.kms_client_secret_secret_name)
+                
+                if client_id and client_secret:
+                    service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                    response = await service.get_user_terminal_details(user_terminal_id)
+                    
+                    return response
+        finally:
+            db.close()
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user terminal details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user terminal details: {str(e)}")
+
+
+@router.get("/admin/routers/{router_id}")
+async def get_router_details(
+    router_id: str,
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Admin endpoint to get detailed information for a specific router.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Get admin's own credentials if they have them
+        if current_admin.kms_client_id_secret_name and current_admin.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_admin.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_admin.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_router_details(router_id)
+                
+                return response
+        
+        # If admin doesn't have credentials, try first customer
+        db = SessionLocal()
+        try:
+            first_customer = db.query(User).filter(User.is_admin == False).first()
+            if first_customer:
+                client_id = await kms.get_secret(first_customer.kms_client_id_secret_name)
+                client_secret = await kms.get_secret(first_customer.kms_client_secret_secret_name)
+                
+                if client_id and client_secret:
+                    service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                    response = await service.get_router_details(router_id)
+                    
+                    return response
+        finally:
+            db.close()
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching router details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch router details: {str(e)}")
+
