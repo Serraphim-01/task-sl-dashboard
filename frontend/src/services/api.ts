@@ -1,12 +1,5 @@
 import axios from 'axios';
 
-// Declare process for Create React App environment variables
-declare const process: {
-  env: {
-    REACT_APP_API_URL: string;
-  };
-};
-
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
   headers: {
@@ -112,6 +105,8 @@ export const deleteUser = async (userId: number) => {
   return response.data;
 };
 
+// ==================== ADMIN SERVICE LINE ENDPOINTS ====================
+
 // Get all service lines (admin only)
 export const getServiceLines = async (params?: {
   addressReferenceId?: string;
@@ -133,6 +128,18 @@ export const getServiceLine = async (serviceLineNumber: string) => {
 // Get billing partial periods for a service line (admin only)
 export const getBillingPartialPeriods = async (serviceLineNumber: string) => {
   const response = await api.get(`/admin/service-lines/${serviceLineNumber}/billing-partial-periods`);
+  return response.data;
+};
+
+// Get current plan details for a service line (admin only)
+export const getCurrentPlan = async (serviceLineNumber: string) => {
+  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/current-plan`);
+  return response.data;
+};
+
+// Get user terminals for a service line (admin only)
+export const getUserTerminals = async (serviceLineNumber: string) => {
+  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/user-terminals`);
   return response.data;
 };
 

@@ -311,3 +311,42 @@ class StarlinkV2Service:
         Reference: https://starlink.readme.io/docs/understanding-proration
         """
         return await self._make_request("GET", f"/service-lines/{service_line_number}/billing-cycles/partial-periods")
+    
+    async def get_current_plan(self, service_line_number: str) -> Dict[str, Any]:
+        """
+        Get the current plan details for a service line
+        
+        Args:
+            service_line_number: Service line number (required)
+            
+        Returns:
+            Current plan details including servicePlan, dataBlocks (active, recurring, topUp), and pricing information
+        """
+        logger.info(f"\n[STARLINK API] Fetching current plan for service line: {service_line_number}")
+        logger.info(f"[STARLINK API] Endpoint: GET /service-lines/{service_line_number}/plan/current\n")
+        
+        response = await self._make_request("GET", f"/service-lines/{service_line_number}/plan/current")
+        
+        logger.info(f"\n[STARLINK API] Current Plan Response:")
+        logger.info(f"Response keys: {list(response.keys()) if isinstance(response, dict) else 'Not a dict'}")
+        logger.info(f"Response content: {response}\n")
+        
+        return response
+    
+    async def get_user_terminals(self, service_line_numbers: str) -> Dict[str, Any]:
+        """
+        Get user terminals associated with a service line
+        
+        Args:
+            service_line_numbers: Service line number(s) to filter terminals (comma-separated)
+            
+        Returns:
+            List of user terminals with their details
+            
+        Reference: https://starlink.com/api/public/v2/user-terminals?serviceLineNumbers=SL-ABC-123
+        """
+        logger.info(f"\n[STARLINK API] Fetching user terminals for service line: {service_line_numbers}")
+        logger.info(f"[STARLINK API] Endpoint: GET /user-terminals?serviceLineNumbers={service_line_numbers}\n")
+        
+        params = {"serviceLineNumbers": service_line_numbers}
+        return await self._make_request("GET", "/user-terminals", params=params)

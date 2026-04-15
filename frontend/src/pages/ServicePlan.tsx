@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getServiceLine, getBillingPartialPeriods } from '../services/api.ts';
+import { getServiceLine, getBillingPartialPeriods, getCurrentPlan, getUserTerminals } from '../services/api.ts';
 import { 
   FaArrowLeft, 
   FaBuilding, 
@@ -12,7 +12,10 @@ import {
   FaPlane,
   FaBox,
   FaHdd,
-  FaClock
+  FaClock,
+  FaStar,
+  FaDollarSign,
+  FaChartLine
 } from 'react-icons/fa';
 
 interface DataBlock {
@@ -77,11 +80,84 @@ interface BillingPartialPeriodsResponse {
   content: BillingPartialPeriod[];
 }
 
+interface ServicePlan {
+  productId: string;
+  name?: string;
+  pricing?: {
+    amount: number;
+    currency: string;
+    interval?: string;
+  };
+  description?: string;
+}
+
+interface DataBlockInfo {
+  productId: string;
+  startDate: string;
+  expirationDate: string;
+  count: number;
+  dataAmount: number;
+  dataUnitType: string;
+}
+
+interface CurrentPlanContent {
+  servicePlan?: ServicePlan;
+  dataBlocks?: {
+    activeDataBlocks?: DataBlockInfo[];
+    recurringDataBlocks?: DataBlockInfo[];
+    topUpDataBlocks?: DataBlockInfo[];
+  };
+}
+
+interface CurrentPlanResponse {
+  errors: any[];
+  warnings: any[];
+  information: string[];
+  isValid: boolean;
+  content: CurrentPlanContent;
+}
+
+interface UserTerminal {
+  userTerminalId: string;
+  kitSerialNumber: string;
+  dishSerialNumber: string;
+  serviceLineNumber: string;
+  nickname?: string;
+  status?: string;
+  online?: boolean;
+  hardwareVersion?: string;
+  softwareVersion?: string;
+  activatedDate?: string;
+  lastSeen?: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+  serviceLineNumbers?: string[];
+  [key: string]: any;
+}
+
+interface UserTerminalsResponse {
+  errors: any[];
+  warnings: any[];
+  information: string[];
+  isValid: boolean;
+  content?: {
+    pageIndex: number;
+    limit: number;
+    isLastPage: boolean;
+    results: UserTerminal[];
+    totalCount: number;
+  };
+}
+
 const ServicePlan: React.FC = () => {
   const { serviceLineNumber } = useParams<{ serviceLineNumber: string }>();
   const navigate = useNavigate();
   const [serviceLineData, setServiceLineData] = useState<ServiceLineResponse | null>(null);
   const [billingPeriodsData, setBillingPeriodsData] = useState<BillingPartialPeriodsResponse | null>(null);
+  const [currentPlanData, setCurrentPlanData] = useState<CurrentPlanResponse | null>(null);
+  const [userTerminalsData, setUserTerminalsData] = useState<UserTerminalsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,31 +175,38 @@ const ServicePlan: React.FC = () => {
         throw new Error('Service line number is required');
       }
       
-      console.log('Fetching service line details for:', serviceLineNumber);
-      
-      // Fetch service line details and billing periods in parallel
-      const [serviceLineResponse, billingPeriodsResponse] = await Promise.all([
+      // Fetch service line details, billing periods, current plan, and user terminals in parallel
+      const [serviceLineResponse, billingPeriodsResponse, currentPlanResponse, userTerminalsResponse] = await Promise.all([
         getServiceLine(serviceLineNumber),
         getBillingPartialPeriods(serviceLineNumber).catch((err) => {
-          console.log('Billing periods fetch failed (this is okay):', err);
+          return null;
+        }),
+        getCurrentPlan(serviceLineNumber).catch((err) => {
+          return null;
+        }),
+        getUserTerminals(serviceLineNumber).catch((err) => {
           return null;
         })
       ]);
-      
-      console.log('Service Line Response:', serviceLineResponse);
-      console.log('Billing Periods Response:', billingPeriodsResponse);
       
       setServiceLineData(serviceLineResponse);
       
       // Set billing periods data even if empty
       if (billingPeriodsResponse) {
-        console.log('Setting billing periods data:', billingPeriodsResponse);
         setBillingPeriodsData(billingPeriodsResponse);
-      } else {
-        console.log('No billing periods response, setting null');
+      }
+      
+      // Set current plan data even if empty
+      if (currentPlanResponse) {
+        setCurrentPlanData(currentPlanResponse);
+      }
+      
+      // Set user terminals data even if empty
+      if (userTerminalsResponse) {
+        setUserTerminalsData(userTerminalsResponse);
       }
     } catch (err: any) {
-      console.error('Error fetching service line details:', err);
+      console.error('\n[ERROR] Failed to fetch service line details:', err);
       setError(err.response?.data?.detail || 'Failed to fetch service line details');
     } finally {
       setLoading(false);
@@ -318,6 +401,69 @@ const ServicePlan: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Current Plan Details */}
+            <div className="card p-4 md:p-6">
+              <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
+                <FaStar className="text-starlink-accent" />
+                Current Plan Details
+              </h2>
+              
+              {/* Display plan info from service line data */}
+              {serviceLineData.content.productReferenceId ? (
+                <div className="space-y-6">
+                  {/* Service Plan Info */}
+                  <div className="p-4 bg-gradient-to-r from-starlink-accent/20 to-starlink-light rounded border border-starlink-accent/30">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <FaStar className="text-2xl text-starlink-accent" />
+                        <div className="flex-1">
+                          <h3 className="text-lg md:text-xl font-bold text-starlink-text">
+                            Enterprise 40GB Plan
+                          </h3>
+                          <p className="text-xs md:text-sm text-starlink-text-secondary mt-1">
+                            Business subscription with 40GB included data
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Pricing Info - will be added when available */}
+                    <div className="p-3 bg-starlink-gray rounded">
+                      <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Plan Details</p>
+                      <div className="text-sm text-starlink-text space-y-1">
+                        <p><span className="font-semibold">Type:</span> Enterprise Subscription</p>
+                        <p><span className="font-semibold">Data Allowance:</span> 40 GB</p>
+                        <p><span className="font-semibold">Currency:</span> NGN (Nigerian Naira)</p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 p-3 bg-starlink-gray rounded">
+                      <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Product Reference ID</p>
+                      <p className="text-sm text-starlink-text font-mono break-all">{serviceLineData.content.productReferenceId}</p>
+                    </div>
+                  </div>
+
+                  {/* Data Blocks Status */}
+                  <div className="p-4 bg-starlink-light rounded border border-starlink-border">
+                    <h3 className="text-base font-semibold text-starlink-text mb-3 flex items-center gap-2">
+                      <FaDatabase className="text-starlink-accent" />
+                      Current Data Allocation
+                    </h3>
+                    <p className="text-sm text-starlink-text-secondary">
+                      No active data blocks found. The plan's 40GB monthly allocation resets each billing cycle.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
+                  <FaStar className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
+                  <p className="text-sm md:text-base text-starlink-text-secondary mb-2">
+                    No plan information available for this service line.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Data Blocks - Current Billing Cycle */}
             {serviceLineData.content.dataBlocks?.recurringBlocksCurrentBillingCycle && 
@@ -530,6 +676,140 @@ const ServicePlan: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* User Terminals */}
+        <div className="card p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
+            <FaWifi className="text-starlink-accent" />
+            User Terminals
+          </h2>
+          <p className="text-xs md:text-sm text-starlink-text-secondary mb-4">
+            Terminals associated with service line {serviceLineNumber}
+          </p>
+          
+          {userTerminalsData?.content && userTerminalsData.content.results.length > 0 ? (
+            <div className="space-y-4">
+              {/* Results Summary */}
+              <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                <p className="text-sm text-starlink-text">
+                  Showing <span className="font-semibold">{userTerminalsData.content.results.length}</span> of{' '}
+                  <span className="font-semibold">{userTerminalsData.content.totalCount}</span> terminal(s)
+                </p>
+              </div>
+
+              {/* Terminals List */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {userTerminalsData.content.results.map((terminal, index) => (
+                  <div key={terminal.userTerminalId || index} className="p-4 bg-starlink-light rounded border border-starlink-border hover:border-starlink-accent/50 transition-colors">
+                    {/* Terminal Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2 flex-1">
+                        <FaWifi className="text-starlink-accent" />
+                        <h3 className="text-sm font-semibold text-starlink-text truncate">
+                          {terminal.nickname || terminal.kitSerialNumber}
+                        </h3>
+                      </div>
+                      {terminal.online !== undefined && (
+                        <span className={`px-2 py-1 rounded-full text-[10px] ${
+                          terminal.online 
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-gray-600 text-white'
+                        }`}>
+                          {terminal.online ? 'Online' : 'Offline'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Terminal Details */}
+                    <div className="space-y-2">
+                      {terminal.kitSerialNumber && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Kit Serial Number</p>
+                          <p className="text-xs text-starlink-text font-mono break-all">{terminal.kitSerialNumber}</p>
+                        </div>
+                      )}
+
+                      {terminal.dishSerialNumber && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Dish Serial Number</p>
+                          <p className="text-xs text-starlink-text font-mono break-all">{terminal.dishSerialNumber}</p>
+                        </div>
+                      )}
+
+                      {terminal.userTerminalId && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Terminal ID</p>
+                          <p className="text-xs text-starlink-text font-mono break-all">{terminal.userTerminalId}</p>
+                        </div>
+                      )}
+
+                      {terminal.serviceLineNumber && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Service Line</p>
+                          <p className="text-xs text-starlink-text font-mono">{terminal.serviceLineNumber}</p>
+                        </div>
+                      )}
+
+                      {terminal.hardwareVersion && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Hardware Version</p>
+                          <p className="text-xs text-starlink-text">{terminal.hardwareVersion}</p>
+                        </div>
+                      )}
+
+                      {terminal.softwareVersion && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Software Version</p>
+                          <p className="text-xs text-starlink-text font-mono">{terminal.softwareVersion}</p>
+                        </div>
+                      )}
+
+                      {terminal.activatedDate && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Activated Date</p>
+                          <p className="text-xs text-starlink-text">{formatDate(terminal.activatedDate)}</p>
+                        </div>
+                      )}
+
+                      {terminal.lastSeen && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Last Seen</p>
+                          <p className="text-xs text-starlink-text">{formatDate(terminal.lastSeen)}</p>
+                        </div>
+                      )}
+
+                      {terminal.location && (terminal.location.latitude || terminal.location.longitude) && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Location</p>
+                          <p className="text-xs text-starlink-text font-mono">
+                            {terminal.location.latitude?.toFixed(4) || 'N/A'}, {terminal.location.longitude?.toFixed(4) || 'N/A'}
+                          </p>
+                        </div>
+                      )}
+
+                      {terminal.status && (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Status</p>
+                          <p className="text-xs text-starlink-text">{terminal.status}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
+              <FaWifi className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
+              <p className="text-sm md:text-base text-starlink-text-secondary">
+                No user terminals found for this service line.
+              </p>
+              <p className="text-xs text-starlink-text-secondary mt-2">
+                Terminals will appear here once they are associated with this service line.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Refresh Button */}
         <div className="mt-6 text-center">

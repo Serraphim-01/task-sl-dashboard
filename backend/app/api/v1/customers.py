@@ -7,6 +7,7 @@ from app.database import SessionLocal
 from app.api.v1.auth import get_current_admin_user
 import re
 import logging
+import json
 from typing import List, Optional
 from datetime import datetime
 
@@ -302,7 +303,9 @@ async def get_service_line(
             
             if client_id and client_secret:
                 service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
-                return await service.get_service_line(service_line_number)
+                response = await service.get_service_line(service_line_number)
+                
+                return response
         
         # If admin doesn't have credentials, try first customer
         db = SessionLocal()
@@ -314,7 +317,9 @@ async def get_service_line(
                 
                 if client_id and client_secret:
                     service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
-                    return await service.get_service_line(service_line_number)
+                    response = await service.get_service_line(service_line_number)
+                    
+                    return response
         finally:
             db.close()
         
@@ -350,7 +355,9 @@ async def get_billing_partial_periods(
             
             if client_id and client_secret:
                 service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
-                return await service.get_billing_partial_periods(service_line_number)
+                response = await service.get_billing_partial_periods(service_line_number)
+                
+                return response
         
         # If admin doesn't have credentials, try first customer
         db = SessionLocal()
@@ -362,7 +369,9 @@ async def get_billing_partial_periods(
                 
                 if client_id and client_secret:
                     service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
-                    return await service.get_billing_partial_periods(service_line_number)
+                    response = await service.get_billing_partial_periods(service_line_number)
+                    
+                    return response
         finally:
             db.close()
         
@@ -373,4 +382,108 @@ async def get_billing_partial_periods(
     except Exception as e:
         logger.error(f"Error fetching billing partial periods: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch billing partial periods: {str(e)}")
+
+
+@router.get("/admin/service-lines/{service_line_number}/current-plan")
+async def get_current_plan(
+    service_line_number: str,
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Admin endpoint to get current plan details for a specific service line.
+    Returns servicePlan, dataBlocks (active, recurring, topUp), and pricing information.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Get admin's own credentials if they have them
+        if current_admin.kms_client_id_secret_name and current_admin.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_admin.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_admin.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_current_plan(service_line_number)
+                
+                return response
+        
+        # If admin doesn't have credentials, try first customer
+        db = SessionLocal()
+        try:
+            first_customer = db.query(User).filter(User.is_admin == False).first()
+            if first_customer:
+                client_id = await kms.get_secret(first_customer.kms_client_id_secret_name)
+                client_secret = await kms.get_secret(first_customer.kms_client_secret_secret_name)
+                
+                if client_id and client_secret:
+                    service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                    response = await service.get_current_plan(service_line_number)
+                    
+                    return response
+        finally:
+            db.close()
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching current plan: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch current plan: {str(e)}")
+
+
+@router.get("/admin/service-lines/{service_line_number}/user-terminals")
+async def get_user_terminals(
+    service_line_number: str,
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Admin endpoint to get user terminals associated with a specific service line.
+    Uses the serviceLineNumbers parameter to filter terminals.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Get admin's own credentials if they have them
+        if current_admin.kms_client_id_secret_name and current_admin.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_admin.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_admin.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_user_terminals(service_line_number)
+                
+                return response
+        
+        # If admin doesn't have credentials, try first customer
+        db = SessionLocal()
+        try:
+            first_customer = db.query(User).filter(User.is_admin == False).first()
+            if first_customer:
+                client_id = await kms.get_secret(first_customer.kms_client_id_secret_name)
+                client_secret = await kms.get_secret(first_customer.kms_client_secret_secret_name)
+                
+                if client_id and client_secret:
+                    service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                    response = await service.get_user_terminals(service_line_number)
+                    
+                    return response
+        finally:
+            db.close()
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user terminals: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user terminals: {str(e)}")
 

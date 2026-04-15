@@ -1,4 +1,5 @@
 /// <reference types="react-scripts" />
+/// <reference types="node" />
 
 // Type definitions for Create React App environment variables
 declare namespace NodeJS {
