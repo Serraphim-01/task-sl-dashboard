@@ -388,8 +388,8 @@ const CustomerManagement: React.FC = () => {
                 />
               </div>
 
-              <div className="bg-blue-900/30 border border-blue-700 p-3 rounded">
-                <p className="text-blue-200 text-xs md:text-sm">
+              <div className="bg-gray-700/30 border border-gray-600 p-3 rounded">
+                <p className="text-gray-200 text-xs md:text-sm">
                   <strong>Note:</strong> No password is required. The customer will set their password on first login.
                 </p>
               </div>

@@ -105,56 +105,6 @@ export const deleteUser = async (userId: number) => {
   return response.data;
 };
 
-// ==================== ADMIN SERVICE LINE ENDPOINTS ====================
-
-// Get all service lines (admin only)
-export const getServiceLines = async (params?: {
-  address_reference_id?: string;
-  search_string?: string;
-  data_pool_id?: string;
-  page?: number;
-  order_by_created_date_descending?: boolean;
-}) => {
-  const response = await api.get('/admin/service-lines', { params });
-  return response.data;
-};
-
-// Get specific service line (admin only)
-export const getServiceLine = async (serviceLineNumber: string) => {
-  const response = await api.get(`/admin/service-lines/${serviceLineNumber}`);
-  return response.data;
-};
-
-// Get billing partial periods (admin only)
-export const getBillingPartialPeriods = async (serviceLineNumber: string) => {
-  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/billing-partial-periods`);
-  return response.data;
-};
-
-// Get current plan (admin only)
-export const getCurrentPlan = async (serviceLineNumber: string) => {
-  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/current-plan`);
-  return response.data;
-};
-
-// Get user terminals (admin only)
-export const getUserTerminals = async (serviceLineNumber: string) => {
-  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/user-terminals`);
-  return response.data;
-};
-
-// Get user terminal details (admin only)
-export const getUserTerminalDetails = async (userTerminalId: string) => {
-  const response = await api.get(`/admin/user-terminals/${userTerminalId}`);
-  return response.data;
-};
-
-// Get router details (admin only)
-export const getRouterDetails = async (routerId: string) => {
-  const response = await api.get(`/admin/routers/${routerId}`);
-  return response.data;
-};
-
 // ==================== STARLINK V2 API ENDPOINTS (Customer - Read Only) ====================
 
 // Account endpoints
@@ -232,6 +182,91 @@ export const getNetworkConfig = async (deviceId: string) => {
 export const getAlerts = async (deviceId?: string) => {
   const params = deviceId ? { deviceId } : {};
   const response = await api.get('/customer/starlink/alerts', { params });
+  return response.data;
+};
+
+// ==================== ADMIN API ENDPOINTS ====================
+
+// Service Lines
+export const getServiceLines = async (params?: {
+  address_reference_id?: string;
+  search_string?: string;
+  data_pool_id?: string;
+  page?: number;
+  order_by_created_date_descending?: boolean;
+}) => {
+  const response = await api.get('/admin/service-lines', { params });
+  return response.data;
+};
+
+export const getServiceLine = async (serviceLineNumber: string) => {
+  const response = await api.get(`/admin/service-lines/${serviceLineNumber}`);
+  return response.data;
+};
+
+export const getBillingPartialPeriods = async (serviceLineNumber: string) => {
+  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/billing-partial-periods`);
+  return response.data;
+};
+
+export const getUserTerminals = async (serviceLineNumber: string) => {
+  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/user-terminals`);
+  return response.data;
+};
+
+export const getUserTerminalDetails = async (userTerminalId: string) => {
+  const response = await api.get(`/admin/user-terminals/${userTerminalId}`);
+  return response.data;
+};
+
+export const getRouterDetails = async (routerId: string) => {
+  const response = await api.get(`/admin/routers/${routerId}`);
+  return response.data;
+};
+
+export const getRouterConfig = async (configId: string) => {
+  const response = await api.get(`/admin/routers/configs/${configId}`);
+  return response.data;
+};
+
+export const getDefaultRouterConfig = async () => {
+  const response = await api.get('/admin/routers/configs/default');
+  return response.data;
+};
+
+export const getRouterLocalContent = async () => {
+  const response = await api.get('/admin/routers/local-content');
+  return response.data;
+};
+
+export const getSandboxClients = async () => {
+  const response = await api.get('/admin/routers/sandbox/clients');
+  return response.data;
+};
+
+export const getTlsConfigs = async () => {
+  const response = await api.get('/admin/routers/configs/tls');
+  return response.data;
+};
+
+export const getProducts = async () => {
+  const response = await api.get('/admin/products');
+  return response.data;
+};
+
+export const getProduct = async (productReferenceId: string) => {
+  const response = await api.get(`/admin/products/${productReferenceId}`);
+  return response.data;
+};
+
+// Addresses
+export const getAddresses = async () => {
+  const response = await api.get('/admin/addresses');
+  return response.data;
+};
+
+export const getAddress = async (addressReferenceId: string) => {
+  const response = await api.get(`/admin/addresses/${addressReferenceId}`);
   return response.data;
 };
 

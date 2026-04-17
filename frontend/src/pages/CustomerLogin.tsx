@@ -286,7 +286,7 @@ const CustomerLogin: React.FC = () => {
     if (strength === 0) return 'bg-gray-600';
     if (strength <= 25) return 'bg-red-600';
     if (strength <= 50) return 'bg-yellow-600';
-    if (strength <= 75) return 'bg-blue-600';
+    if (strength <= 75) return 'bg-gray-600';
     return 'bg-green-600';
   };
 
@@ -442,7 +442,7 @@ const CustomerLogin: React.FC = () => {
                           <span className={`text-xs font-semibold ${
                             passwordStrength <= 25 ? 'text-red-400' :
                             passwordStrength <= 50 ? 'text-yellow-400' :
-                            passwordStrength <= 75 ? 'text-blue-400' : 'text-green-400'
+                            passwordStrength <= 75 ? 'text-gray-400' : 'text-green-400'
                           }`}>
                             {getStrengthLabel(passwordStrength)}
                           </span>
@@ -602,7 +602,7 @@ const CustomerLogin: React.FC = () => {
                         <span className={`text-xs font-semibold ${
                           resetPasswordStrength <= 25 ? 'text-red-400' :
                           resetPasswordStrength <= 50 ? 'text-yellow-400' :
-                          resetPasswordStrength <= 75 ? 'text-blue-400' : 'text-green-400'
+                          resetPasswordStrength <= 75 ? 'text-gray-400' : 'text-green-400'
                         }`}>
                           {getStrengthLabel(resetPasswordStrength)}
                         </span>

@@ -13,7 +13,7 @@ module.exports = {
           darker: '#141414',
           gray: '#1a1a1a',
           light: '#2a2a2a',
-          accent: '#3b82f6', // Blue accent like Starlink
+          accent: '#9ca3af', // Monochrome gray accent
           success: '#10b981',
           warning: '#f59e0b',
           error: '#ef4444',

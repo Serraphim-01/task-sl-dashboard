@@ -108,7 +108,7 @@ const AdminSettings: React.FC = () => {
     if (strength === 0) return 'bg-gray-600';
     if (strength <= 25) return 'bg-red-600';
     if (strength <= 50) return 'bg-yellow-600';
-    if (strength <= 75) return 'bg-blue-600';
+    if (strength <= 75) return 'bg-gray-600';
     return 'bg-green-600';
   };
 

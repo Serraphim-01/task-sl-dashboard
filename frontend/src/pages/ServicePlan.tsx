@@ -1,23 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getServiceLine, getBillingPartialPeriods, getCurrentPlan, getUserTerminals, getUserTerminalDetails, getRouterDetails } from '../services/api.ts';
-import { 
-  FaArrowLeft, 
-  FaBuilding, 
-  FaCalendarAlt, 
-  FaWifi, 
-  FaCheckCircle, 
-  FaTimesCircle,
-  FaDatabase,
-  FaPlane,
-  FaBox,
-  FaHdd,
-  FaClock,
-  FaStar,
-  FaDollarSign,
-  FaChartLine,
-  FaEye
-} from 'react-icons/fa';
+import { getServiceLine, getBillingPartialPeriods, getUserTerminals, getUserTerminalDetails, getRouterDetails, getRouterConfig, getDefaultRouterConfig, getProducts } from '../services/api.ts';
+import { FaEye } from 'react-icons/fa';
 
 interface DataBlock {
   productId: string;
@@ -165,12 +149,18 @@ const ServicePlan: React.FC = () => {
   const navigate = useNavigate();
   const [serviceLineData, setServiceLineData] = useState<ServiceLineResponse | null>(null);
   const [billingPeriodsData, setBillingPeriodsData] = useState<BillingPartialPeriodsResponse | null>(null);
-  const [currentPlanData, setCurrentPlanData] = useState<CurrentPlanResponse | null>(null);
   const [userTerminalsData, setUserTerminalsData] = useState<UserTerminalsResponse | null>(null);
   const [selectedTerminalDetails, setSelectedTerminalDetails] = useState<any>(null);
   const [loadingTerminalDetails, setLoadingTerminalDetails] = useState<string | null>(null);
   const [selectedRouterDetails, setSelectedRouterDetails] = useState<any>(null);
   const [loadingRouterDetails, setLoadingRouterDetails] = useState<string | null>(null);
+  const [selectedRouterConfig, setSelectedRouterConfig] = useState<any>(null);
+  const [loadingRouterConfig, setLoadingRouterConfig] = useState<string | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+  const [defaultRouterConfig, setDefaultRouterConfig] = useState<any>(null);
+  const [loadingDefaultConfig, setLoadingDefaultConfig] = useState(false);
+  const [productData, setProductData] = useState<any>(null);
+  const [loadingProduct, setLoadingProduct] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -180,6 +170,28 @@ const ServicePlan: React.FC = () => {
     }
   }, [serviceLineNumber]);
 
+  const fetchProductsAndMatch = async (productReferenceId: string) => {
+    setLoadingProduct(true);
+    try {
+      const response = await getProducts();
+      console.log('[DEBUG] All Products Response:', response);
+      const productsArray = response?.content?.results || response?.content || [];
+      
+      if (Array.isArray(productsArray)) {
+        const matchingProduct = productsArray.find(
+          (p: any) => p.productReferenceId === productReferenceId || p.id === productReferenceId
+        );
+        console.log('[DEBUG] Matching Product:', matchingProduct);
+        setProductData(matchingProduct || null);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch products:', err);
+      // Don't set error here - product is supplementary
+    } finally {
+      setLoadingProduct(false);
+    }
+  };
+
   const fetchServiceLineDetails = async () => {
     setLoading(true);
     setError(null);
@@ -188,13 +200,10 @@ const ServicePlan: React.FC = () => {
         throw new Error('Service line number is required');
       }
       
-      // Fetch service line details, billing periods, current plan, and user terminals in parallel
-      const [serviceLineResponse, billingPeriodsResponse, currentPlanResponse, userTerminalsResponse] = await Promise.all([
+      // Fetch service line details, billing periods, and user terminals in parallel
+      const [serviceLineResponse, billingPeriodsResponse, userTerminalsResponse] = await Promise.all([
         getServiceLine(serviceLineNumber),
         getBillingPartialPeriods(serviceLineNumber).catch((err) => {
-          return null;
-        }),
-        getCurrentPlan(serviceLineNumber).catch((err) => {
           return null;
         }),
         getUserTerminals(serviceLineNumber).catch((err) => {
@@ -204,14 +213,19 @@ const ServicePlan: React.FC = () => {
       
       setServiceLineData(serviceLineResponse);
       
+      // Fetch product details if productReferenceId exists
+      if (serviceLineResponse?.content?.productReferenceId) {
+        fetchProductsAndMatch(serviceLineResponse.content.productReferenceId);
+      }
+      
+      // Debug: Log the API responses
+      console.log('[DEBUG] Service Line Response:', serviceLineResponse);
+      console.log('[DEBUG] Billing Periods Response:', billingPeriodsResponse);
+      console.log('[DEBUG] User Terminals Response:', userTerminalsResponse);
+      
       // Set billing periods data even if empty
       if (billingPeriodsResponse) {
         setBillingPeriodsData(billingPeriodsResponse);
-      }
-      
-      // Set current plan data even if empty
-      if (currentPlanResponse) {
-        setCurrentPlanData(currentPlanResponse);
       }
       
       // Set user terminals data even if empty
@@ -278,6 +292,32 @@ const ServicePlan: React.FC = () => {
     }
   };
 
+  const fetchRouterConfig = async (configId: string) => {
+    setLoadingRouterConfig(configId);
+    setSelectedRouterConfig(null);
+    try {
+      const response = await getRouterConfig(configId);
+      setSelectedRouterConfig(response);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to fetch router config');
+    } finally {
+      setLoadingRouterConfig(null);
+    }
+  };
+
+  const fetchDefaultRouterConfig = async () => {
+    setLoadingDefaultConfig(true);
+    setDefaultRouterConfig(null);
+    try {
+      const response = await getDefaultRouterConfig();
+      setDefaultRouterConfig(response);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to fetch default router config');
+    } finally {
+      setLoadingDefaultConfig(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-starlink-darker flex items-center justify-center">
@@ -303,7 +343,7 @@ const ServicePlan: React.FC = () => {
             onClick={() => navigate('/admin/service-lines')}
             className="flex items-center gap-2 text-starlink-text-secondary hover:text-starlink-text transition-colors mb-3 text-sm"
           >
-            <FaArrowLeft />
+            <span>←</span>
             <span>Back to Service Lines</span>
           </button>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -316,7 +356,7 @@ const ServicePlan: React.FC = () => {
                   ? 'bg-green-600 text-white' 
                   : 'bg-gray-600 text-white'
               }`}>
-                {serviceLineData.content.active ? <FaCheckCircle /> : <FaTimesCircle />}
+                {serviceLineData.content.active ? '✓' : '✗'}
                 {serviceLineData.content.active ? 'Active' : 'Inactive'}
               </span>
             )}
@@ -334,7 +374,6 @@ const ServicePlan: React.FC = () => {
             {/* Basic Information */}
             <div className="card p-4 md:p-6">
               <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                <FaBuilding className="text-starlink-accent" />
                 Basic Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -360,31 +399,16 @@ const ServicePlan: React.FC = () => {
                 </div>
                 <div className="p-3 bg-starlink-light rounded border border-starlink-border">
                   <p className="text-[10px] md:text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Start Date</p>
-                  <p className="text-sm md:text-base text-starlink-text flex items-center gap-2">
-                    <FaCalendarAlt className="text-starlink-text-secondary" />
+                  <p className="text-sm md:text-base text-starlink-text">
                     {formatDate(serviceLineData.content.startDate)}
                   </p>
                 </div>
                 <div className="p-3 bg-starlink-light rounded border border-starlink-border">
                   <p className="text-[10px] md:text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">End Date</p>
-                  <p className="text-sm md:text-base text-starlink-text flex items-center gap-2">
-                    <FaCalendarAlt className="text-starlink-text-secondary" />
-                    {serviceLineData.content.endDate ? formatDate(serviceLineData.content.endDate) : 'No End Date'}
+                  <p className="text-sm md:text-base text-starlink-text">
+                    {formatDate(serviceLineData.content.endDate)}
                   </p>
                 </div>
-                <div className="p-3 bg-starlink-light rounded border border-starlink-border">
-                  <p className="text-[10px] md:text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Public IP</p>
-                  <p className="text-sm md:text-base text-starlink-text flex items-center gap-2">
-                    <FaWifi className="text-starlink-accent" />
-                    {serviceLineData.content.publicIp ? 'Enabled' : 'Disabled'}
-                  </p>
-                </div>
-                {serviceLineData.content.addressReferenceId && (
-                  <div className="p-3 bg-starlink-light rounded border border-starlink-border md:col-span-2 lg:col-span-3">
-                    <p className="text-[10px] md:text-xs text-starlink-text-secondary uppercase tracking-wide mb-1">Address Reference ID</p>
-                    <p className="text-sm md:text-base text-starlink-text font-mono break-all">{serviceLineData.content.addressReferenceId}</p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -392,7 +416,6 @@ const ServicePlan: React.FC = () => {
             {serviceLineData.content.aviationMetadata && (
               <div className="card p-4 md:p-6">
                 <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                  <FaPlane className="text-starlink-accent" />
                   Aviation Metadata
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -442,62 +465,64 @@ const ServicePlan: React.FC = () => {
               </div>
             )}
 
-            {/* Current Plan Details */}
+            {/* Service Plan Information */}
             <div className="card p-4 md:p-6">
-              <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                <FaStar className="text-starlink-accent" />
-                Current Plan Details
+              <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4">
+                Service Plan Details
               </h2>
               
               {/* Display plan info from service line data */}
               {serviceLineData.content.productReferenceId ? (
                 <div className="space-y-6">
                   {/* Service Plan Info */}
-                  <div className="p-4 bg-gradient-to-r from-starlink-accent/20 to-starlink-light rounded border border-starlink-accent/30">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <FaStar className="text-2xl text-starlink-accent" />
-                        <div className="flex-1">
-                          <h3 className="text-lg md:text-xl font-bold text-starlink-text">
-                            Enterprise 40GB Plan
-                          </h3>
-                          <p className="text-xs md:text-sm text-starlink-text-secondary mt-1">
-                            Business subscription with 40GB included data
-                          </p>
+                  {(() => {
+                    // Debug: Log product data
+                    console.log('[DEBUG] Product Data:', productData);
+                    
+                    return (
+                      <div className="p-4 bg-gradient-to-r from-starlink-accent/20 to-starlink-light rounded border border-starlink-accent/30">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-lg md:text-xl font-bold text-starlink-text">
+                              {productData?.name || productData?.displayName || 'Enterprise Subscription'}
+                            </h3>
+                            {(productData?.description || productData?.shortDescription) && (
+                              <p className="text-xs md:text-sm text-starlink-text-secondary mt-1">
+                                {productData?.description || productData?.shortDescription}
+                              </p>
+                            )}
+                          </div>
                         </div>
+                        
+                        {/* Pricing Information - Handle both direct price field and pricing object */}
+                        {((typeof productData?.price === 'number') || productData?.pricing) && (
+                          <div className="p-3 bg-starlink-gray rounded">
+                            <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Pricing</p>
+                            <p className="text-sm text-starlink-text font-semibold">
+                              {(() => {
+                                // Handle direct price field (number)
+                                if (typeof productData?.price === 'number') {
+                                  const currency = productData?.isoCurrencyCode || '';
+                                  return `${currency} ${productData.price.toLocaleString()}`;
+                                }
+                                // Handle pricing object
+                                if (productData?.pricing) {
+                                  const amount = productData.pricing.amount;
+                                  const currency = productData.pricing.currency || '';
+                                  const interval = productData.pricing.interval ? `/${productData.pricing.interval}` : '';
+                                  return `${currency} ${amount}${interval}`;
+                                }
+                                return 'N/A';
+                              })()}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    
-                    {/* Pricing Info - will be added when available */}
-                    <div className="p-3 bg-starlink-gray rounded">
-                      <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Plan Details</p>
-                      <div className="text-sm text-starlink-text space-y-1">
-                        <p><span className="font-semibold">Type:</span> Enterprise Subscription</p>
-                        <p><span className="font-semibold">Data Allowance:</span> 40 GB</p>
-                        <p><span className="font-semibold">Currency:</span> NGN (Nigerian Naira)</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 p-3 bg-starlink-gray rounded">
-                      <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Product Reference ID</p>
-                      <p className="text-sm text-starlink-text font-mono break-all">{serviceLineData.content.productReferenceId}</p>
-                    </div>
-                  </div>
-
-                  {/* Data Blocks Status */}
-                  <div className="p-4 bg-starlink-light rounded border border-starlink-border">
-                    <h3 className="text-base font-semibold text-starlink-text mb-3 flex items-center gap-2">
-                      <FaDatabase className="text-starlink-accent" />
-                      Current Data Allocation
-                    </h3>
-                    <p className="text-sm text-starlink-text-secondary">
-                      No active data blocks found. The plan's 40GB monthly allocation resets each billing cycle.
-                    </p>
-                  </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
-                  <FaStar className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
                   <p className="text-sm md:text-base text-starlink-text-secondary mb-2">
                     No plan information available for this service line.
                   </p>
@@ -509,16 +534,14 @@ const ServicePlan: React.FC = () => {
             {serviceLineData.content.dataBlocks?.recurringBlocksCurrentBillingCycle && 
              serviceLineData.content.dataBlocks.recurringBlocksCurrentBillingCycle.length > 0 && (
               <div className="card p-4 md:p-6">
-                <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                  <FaHdd className="text-starlink-accent" />
+                <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4">
                   Current Billing Cycle - Data Blocks
                 </h2>
                 <div className="space-y-3">
                   {serviceLineData.content.dataBlocks.recurringBlocksCurrentBillingCycle.map((block, index) => (
                     <div key={index} className="p-4 bg-starlink-light rounded border border-starlink-border">
                       <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <FaBox className="text-starlink-accent" />
+                        <div>
                           <p className="text-sm md:text-base text-starlink-text font-semibold">Product: {block.productId}</p>
                         </div>
                         <span className="px-2 py-1 bg-starlink-accent text-white text-xs rounded">
@@ -551,16 +574,14 @@ const ServicePlan: React.FC = () => {
             {serviceLineData.content.dataBlocks?.recurringBlocksNextBillingCycle && 
              serviceLineData.content.dataBlocks.recurringBlocksNextBillingCycle.length > 0 && (
               <div className="card p-4 md:p-6">
-                <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                  <FaHdd className="text-starlink-accent" />
+                <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4">
                   Next Billing Cycle - Data Blocks
                 </h2>
                 <div className="space-y-3">
                   {serviceLineData.content.dataBlocks.recurringBlocksNextBillingCycle.map((block, index) => (
                     <div key={index} className="p-4 bg-starlink-light rounded border border-starlink-border">
                       <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <FaBox className="text-starlink-accent" />
+                        <div>
                           <p className="text-sm md:text-base text-starlink-text font-semibold">Product: {block.productId}</p>
                         </div>
                         <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
@@ -593,8 +614,7 @@ const ServicePlan: React.FC = () => {
             {serviceLineData.content.dataBlocks?.topUpBlocksOptInPurchase && 
              serviceLineData.content.dataBlocks.topUpBlocksOptInPurchase.length > 0 && (
               <div className="card p-4 md:p-6">
-                <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                  <FaDatabase className="text-starlink-accent" />
+                <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4">
                   Top-Up Blocks - Opt-In Purchase
                 </h2>
                 <div className="space-y-3">
@@ -616,8 +636,7 @@ const ServicePlan: React.FC = () => {
             {serviceLineData.content.dataBlocks?.topUpBlocksOneTimePurchase && 
              serviceLineData.content.dataBlocks.topUpBlocksOneTimePurchase.length > 0 && (
               <div className="card p-4 md:p-6">
-                <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                  <FaDatabase className="text-starlink-accent" />
+                <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4">
                   Top-Up Blocks - One-Time Purchase
                 </h2>
                 <div className="space-y-3">
@@ -635,97 +654,38 @@ const ServicePlan: React.FC = () => {
               </div>
             )}
 
-            {/* Billing Partial Periods */}
-            <div className="card p-4 md:p-6">
-              <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                <FaClock className="text-starlink-accent" />
-                Billing Partial Periods
-              </h2>
-              <p className="text-xs md:text-sm text-starlink-text-secondary mb-4">
-                Previous billing partial periods for this service line. 
-                <a 
-                  href="https://starlink.readme.io/docs/understanding-proration" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-starlink-accent hover:underline ml-1"
-                >
-                  Learn about proration
-                </a>
-              </p>
-              
-              {billingPeriodsData?.content && billingPeriodsData.content.length > 0 ? (
-                <div className="space-y-3">
-                  {billingPeriodsData.content.map((period, index) => (
-                    <div key={index} className="p-4 bg-starlink-light rounded border border-starlink-border">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <FaBox className="text-starlink-accent" />
-                          <p className="text-sm md:text-base text-starlink-text font-semibold">
-                            Product Reference ID
-                          </p>
-                        </div>
-                        <span className="px-2 py-1 bg-starlink-accent text-white text-xs rounded font-mono">
-                          #{index + 1}
-                        </span>
-                      </div>
-                      <div className="p-3 bg-starlink-gray rounded mb-3">
-                        <p className="text-xs text-starlink-text font-mono break-all">{period.productReferenceId}</p>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="flex items-start gap-2">
-                          <FaCalendarAlt className="text-starlink-text-secondary mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Period Start</p>
-                            <p className="text-sm text-starlink-text font-medium">
-                              {formatDate(period.periodStart)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <FaCalendarAlt className="text-starlink-text-secondary mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Period End</p>
-                            <p className="text-sm text-starlink-text font-medium">
-                              {formatDate(period.periodEnd)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      {period.periodStart && period.periodEnd && (
-                        <div className="mt-3 pt-3 border-t border-starlink-border">
-                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Duration</p>
-                          <p className="text-sm text-starlink-text font-semibold">
-                            {calculateDaysBetween(period.periodStart, period.periodEnd)} days
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
-                  <FaClock className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
-                  <p className="text-sm md:text-base text-starlink-text-secondary">
-                    No billing partial periods available for this service plan.
-                  </p>
-                  <p className="text-xs text-starlink-text-secondary mt-2">
-                    This service plan has not had any previous billing partial periods.
-                  </p>
-                </div>
-              )}
-            </div>
+
           </div>
         )}
 
         {/* User Terminals */}
         <div className="card p-4 md:p-6">
-          <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-            <FaWifi className="text-starlink-accent" />
-            User Terminals
-          </h2>
-          <p className="text-xs md:text-sm text-starlink-text-secondary mb-4">
-            Terminals associated with service line {serviceLineNumber}
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg md:text-xl font-semibold text-starlink-text">
+                User Terminals
+              </h2>
+              <p className="text-xs md:text-sm text-starlink-text-secondary mb-4">
+                Terminals associated with service line {serviceLineNumber}
+              </p>
+            </div>
+            <button
+              onClick={fetchDefaultRouterConfig}
+              disabled={loadingDefaultConfig}
+              className="btn-primary py-1.5 px-3 text-xs flex items-center gap-2 disabled:opacity-50"
+            >
+              {loadingDefaultConfig ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  Loading...
+                </>
+              ) : (
+                <>
+                  View Default Router Config
+                </>
+              )}
+            </button>
+          </div>
           
           {userTerminalsData?.content && userTerminalsData.content.results.length > 0 ? (
             <div className="space-y-4">
@@ -744,7 +704,6 @@ const ServicePlan: React.FC = () => {
                     {/* Terminal Header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 flex-1">
-                        <FaWifi className="text-starlink-accent" />
                         <h3 className="text-sm font-semibold text-starlink-text truncate">
                           {terminal.nickname || terminal.kitSerialNumber}
                         </h3>
@@ -872,7 +831,6 @@ const ServicePlan: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <FaDatabase />
                           View L2VPN Configuration
                         </>
                       )}
@@ -884,10 +842,18 @@ const ServicePlan: React.FC = () => {
               {/* L2VPN Configuration Details */}
               {selectedTerminalDetails && (
                 <div className="card p-4 md:p-6 border-2 border-starlink-accent">
-                  <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                    <FaDatabase className="text-starlink-accent" />
-                    L2VPN Configuration
-                  </h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg md:text-xl font-semibold text-starlink-text">
+                      L2VPN Configuration
+                    </h2>
+                    <button
+                      onClick={() => setSelectedTerminalDetails(null)}
+                      className="text-starlink-text-secondary hover:text-starlink-text transition-colors"
+                      title="Close"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 
                 {selectedTerminalDetails.content && selectedTerminalDetails.content.results && selectedTerminalDetails.content.results.length > 0 ? (
                   (() => {
@@ -982,7 +948,6 @@ const ServicePlan: React.FC = () => {
                           </div>
                         ) : (
                           <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
-                            <FaDatabase className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
                             <p className="text-sm text-starlink-text-secondary">
                               No L2VPN circuits configured for this terminal.
                             </p>
@@ -1002,10 +967,18 @@ const ServicePlan: React.FC = () => {
               {/* Router Details */}
               {selectedRouterDetails && (
                 <div className="card p-4 md:p-6 border-2 border-starlink-accent">
-                  <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-                    <FaEye className="text-starlink-accent" />
-                    Router Details
-                  </h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg md:text-xl font-semibold text-starlink-text">
+                      Router Details
+                    </h2>
+                    <button
+                      onClick={() => setSelectedRouterDetails(null)}
+                      className="text-starlink-text-secondary hover:text-starlink-text transition-colors"
+                      title="Close"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 
                 {selectedRouterDetails.content ? (
                   <div className="space-y-4">
@@ -1035,7 +1008,21 @@ const ServicePlan: React.FC = () => {
                       {selectedRouterDetails.content.configId && (
                         <div className="p-3 bg-starlink-light rounded border border-starlink-border">
                           <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Config ID</p>
-                          <p className="text-sm text-starlink-text font-mono break-all">{selectedRouterDetails.content.configId}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-starlink-text font-mono break-all flex-1">{selectedRouterDetails.content.configId}</p>
+                            <button
+                              onClick={() => fetchRouterConfig(selectedRouterDetails.content.configId)}
+                              disabled={loadingRouterConfig === selectedRouterDetails.content.configId}
+                              className="p-1.5 text-starlink-text-secondary hover:text-starlink-accent transition-colors disabled:opacity-50"
+                              title="View Router Config"
+                            >
+                              {loadingRouterConfig === selectedRouterDetails.content.configId ? (
+                                <span className="animate-spin">⏳</span>
+                              ) : (
+                                <FaEye />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       )}
                       
@@ -1061,10 +1048,232 @@ const ServicePlan: React.FC = () => {
                 )}
                 </div>
               )}
+
+              {/* Router Config */}
+              {selectedRouterConfig && (
+                <div className="card p-4 md:p-6 border-2 border-starlink-accent">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg md:text-xl font-semibold text-starlink-text">
+                      Router Configuration
+                    </h2>
+                    <button
+                      onClick={() => setSelectedRouterConfig(null)}
+                      className="text-starlink-text-secondary hover:text-starlink-text transition-colors"
+                      title="Close"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                
+                {selectedRouterConfig.content ? (
+                  <div className="space-y-4">
+                    {/* Config Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      {selectedRouterConfig.content.configId && (
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Config ID</p>
+                          <p className="text-sm text-starlink-text font-mono break-all">{selectedRouterConfig.content.configId}</p>
+                        </div>
+                      )}
+                      
+                      {selectedRouterConfig.content.nickname && (
+                        <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Nickname</p>
+                          <p className="text-sm text-starlink-text">{selectedRouterConfig.content.nickname}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Router Config - User Friendly Display */}
+                    {selectedRouterConfig.content.routerConfigJson && (() => {
+                      try {
+                        const config = JSON.parse(selectedRouterConfig.content.routerConfigJson);
+                        
+                        // Check if a field is sensitive (contains password, key, secret, token)
+                        const isSensitiveField = (fieldName: string) => {
+                          const lowerField = fieldName.toLowerCase();
+                          return lowerField.includes('password') || 
+                                 lowerField.includes('passwd') || 
+                                 lowerField.includes('pass') ||
+                                 lowerField.includes('key') ||
+                                 lowerField.includes('secret') ||
+                                 lowerField.includes('token');
+                        };
+                        
+                        // Toggle password visibility
+                        const togglePasswordVisibility = (fieldKey: string) => {
+                          setVisiblePasswords(prev => {
+                            const newSet = new Set(prev);
+                            if (newSet.has(fieldKey)) {
+                              newSet.delete(fieldKey);
+                            } else {
+                              newSet.add(fieldKey);
+                            }
+                            return newSet;
+                          });
+                        };
+                        
+                        // Helper function to render nested objects nicely
+                        const renderValue = (value: any, fieldKey: string = ''): React.ReactNode => {
+                          if (typeof value === 'boolean') {
+                            return (
+                              <span className={value ? 'text-green-400' : 'text-red-400'}>
+                                {value ? 'Enabled' : 'Disabled'}
+                              </span>
+                            );
+                          } else if (value === null || value === undefined) {
+                            return <span className="text-starlink-text-muted">—</span>;
+                          } else if (typeof value === 'object' && !Array.isArray(value)) {
+                            // Handle nested objects (like networks)
+                            return (
+                              <div className="space-y-1 mt-1">
+                                {Object.entries(value).map(([nestedKey, nestedValue]) => (
+                                  <div key={nestedKey} className="flex items-start gap-2">
+                                    <span className="text-xs text-starlink-text-secondary min-w-[120px]">
+                                      {nestedKey.replace(/([A-Z])/g, ' $1').replace(/^\w/, (c) => c.toUpperCase())}
+                                    </span>
+                                    <span className="text-xs text-starlink-text">
+                                      {renderValue(nestedValue, `${fieldKey}.${nestedKey}`)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          } else if (Array.isArray(value)) {
+                            // Handle arrays
+                            return (
+                              <div className="space-y-1">
+                                {value.map((item: any, idx: number) => (
+                                  <div key={idx} className="p-2 bg-starlink-darker rounded border border-starlink-border">
+                                    {typeof item === 'object' && item !== null ? (
+                                      <div className="space-y-1">
+                                        {Object.entries(item).map(([k, v]) => {
+                                          const fieldLabel = k
+                                            .replace(/([A-Z])/g, ' $1')
+                                            .replace(/^\w/, (c) => c.toUpperCase());
+                                          return (
+                                            <div key={k} className="flex items-start gap-2">
+                                              <span className="text-xs text-starlink-text-secondary min-w-[120px]">
+                                                {fieldLabel}
+                                              </span>
+                                              <span className="text-xs text-starlink-text">
+                                                {renderValue(v, `${fieldKey}.${k}`)}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-starlink-text">{String(item)}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          } else {
+                            // Handle primitive values
+                            return <span className="text-starlink-text font-medium">{String(value)}</span>;
+                          }
+                        };
+                        
+                        // Render value with password masking
+                        const renderValueWithMasking = (key: string, value: any) => {
+                          if (isSensitiveField(key) && typeof value === 'string') {
+                            const isVisible = visiblePasswords.has(key);
+                            return (
+                              <div className="flex items-center gap-2">
+                                <span className="text-starlink-text font-mono">
+                                  {isVisible ? value : '••••••••••••'}
+                                </span>
+                                <button
+                                  onClick={() => togglePasswordVisibility(key)}
+                                  className="text-xs text-starlink-accent hover:text-starlink-accent/80 transition-colors"
+                                  title={isVisible ? 'Hide password' : 'Show password'}
+                                >
+                                  {isVisible ? <span>🙈</span> : <FaEye />}
+                                </button>
+                              </div>
+                            );
+                          }
+                          return renderValue(value, key);
+                        };
+                        
+                        return (
+                          <div>
+                            <p className="text-xs font-semibold text-starlink-text-secondary uppercase tracking-wide mb-2">Configuration Settings</p>
+                            <div className="space-y-1">
+                              {/* Display each config setting as compact rows */}
+                              {Object.entries(config).map(([key, value]) => {
+                                const label = key
+                                  .replace(/([A-Z])/g, ' $1')
+                                  .replace(/_/g, ' ')
+                                  .replace(/^\w/, (c) => c.toUpperCase());
+                                
+                                return (
+                                  <div key={key} className="flex items-start gap-3 p-2 bg-starlink-light/50 rounded hover:bg-starlink-light transition-colors">
+                                    <span className="text-xs font-semibold text-starlink-text-secondary min-w-[140px] pt-0.5">{label}</span>
+                                    <div className="flex-1 text-xs">{renderValueWithMasking(key, value)}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      } catch (e) {
+                        return (
+                          <div>
+                            <p className="text-[10px] text-starlink-text-secondary uppercase mb-2">Raw Configuration</p>
+                            <pre className="text-xs text-starlink-text font-mono bg-starlink-darker p-4 rounded overflow-x-auto border border-starlink-border max-h-96 overflow-y-auto">
+                              {selectedRouterConfig.content.routerConfigJson}
+                            </pre>
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-starlink-text-secondary">
+                    <p>No router configuration available.</p>
+                  </div>
+                )}
+                </div>
+              )}
+
+              {/* Default Router Config */}
+              {defaultRouterConfig && (
+                <div className="card p-4 md:p-6 border-2 border-starlink-accent">
+                  <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
+                    Default Router Configuration
+                  </h2>
+                
+                {defaultRouterConfig.content ? (
+                  <div className="space-y-4">
+                    <div className="p-3 bg-starlink-accent/10 border border-starlink-accent rounded">
+                      <p className="text-xs text-starlink-text-secondary mb-2">
+                        This is the configuration that will be automatically assigned to new routers when they are first added to this account.
+                      </p>
+                      {defaultRouterConfig.content.configId ? (
+                        <div>
+                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Default Config ID</p>
+                          <p className="text-sm text-starlink-text font-mono break-all">{defaultRouterConfig.content.configId}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-starlink-text-secondary italic">
+                          No default configuration has been set. New routers will not be automatically assigned a config.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-starlink-text-secondary">
+                    <p>No default router configuration available.</p>
+                  </div>
+                )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
-              <FaWifi className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
               <p className="text-sm md:text-base text-starlink-text-secondary">
                 No user terminals found for this service line.
               </p>

@@ -5,7 +5,13 @@ import CustomerManagement from './CustomerManagement.tsx';
 import ServiceLines from './ServiceLines.tsx';
 import ServicePlan from './ServicePlan.tsx';
 import AdminSettings from './AdminSettings.tsx';
-import { FaUsers, FaCog, FaSignOutAlt, FaBars, FaLaptop } from 'react-icons/fa';
+import Products from './Products.tsx';
+import Addresses from './Addresses.tsx';
+import DefaultRouterConfig from './DefaultRouterConfig.tsx';
+import RouterLocalContent from './RouterLocalContent.tsx';
+import SandboxClients from './SandboxClients.tsx';
+import TlsConfigs from './TlsConfigs.tsx';
+import { FaUsers, FaCog, FaSignOutAlt, FaBars, FaLaptop, FaMapMarkerAlt, FaRoute, FaFileAlt, FaUsersCog, FaCertificate, FaBox } from 'react-icons/fa';
 
 const AdminPortal: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -34,6 +40,12 @@ const AdminPortal: React.FC = () => {
   const navItems = [
     { path: '/admin/customers', label: 'Customer Management', icon: <FaUsers /> },
     { path: '/admin/service-lines', label: 'Service Lines', icon: <FaLaptop /> },
+    { path: '/admin/products', label: 'Products', icon: <FaBox /> },
+    { path: '/admin/addresses', label: 'Addresses', icon: <FaMapMarkerAlt /> },
+    { path: '/admin/default-router-config', label: 'Default Router Config', icon: <FaRoute /> },
+    { path: '/admin/router-local-content', label: 'Router Local Content', icon: <FaFileAlt /> },
+    { path: '/admin/sandbox-clients', label: 'Sandbox Clients', icon: <FaUsersCog /> },
+    { path: '/admin/tls-configs', label: 'TLS Configs', icon: <FaCertificate /> },
   ];
 
   const handleLogout = () => {
@@ -147,6 +159,12 @@ const AdminPortal: React.FC = () => {
             <Route path="/customers" element={<CustomerManagement />} />
             <Route path="/service-lines" element={<ServiceLines />} />
             <Route path="/service-plan/:serviceLineNumber" element={<ServicePlan />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/addresses" element={<Addresses />} />
+            <Route path="/default-router-config" element={<DefaultRouterConfig />} />
+            <Route path="/router-local-content" element={<RouterLocalContent />} />
+            <Route path="/sandbox-clients" element={<SandboxClients />} />
+            <Route path="/tls-configs" element={<TlsConfigs />} />
             <Route path="/settings" element={<AdminSettings />} />
           </Routes>
         </div>
@@ -156,6 +174,12 @@ const AdminPortal: React.FC = () => {
             <Route path="/customers" element={<CustomerManagement />} />
             <Route path="/service-lines" element={<ServiceLines />} />
             <Route path="/service-plan/:serviceLineNumber" element={<ServicePlan />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/addresses" element={<Addresses />} />
+            <Route path="/default-router-config" element={<DefaultRouterConfig />} />
+            <Route path="/router-local-content" element={<RouterLocalContent />} />
+            <Route path="/sandbox-clients" element={<SandboxClients />} />
+            <Route path="/tls-configs" element={<TlsConfigs />} />
             <Route path="/settings" element={<AdminSettings />} />
           </Routes>
         </div>

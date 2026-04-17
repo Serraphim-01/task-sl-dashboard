@@ -35,7 +35,7 @@ const Toast: React.FC<ToastProps> = ({
       case 'error':
         return 'bg-red-900/90 border-red-600 text-red-100';
       case 'info':
-        return 'bg-blue-900/90 border-blue-600 text-blue-100';
+        return 'bg-gray-700/90 border-gray-500 text-gray-100';
       default:
         return 'bg-green-900/90 border-green-600 text-green-100';
     }
@@ -48,7 +48,7 @@ const Toast: React.FC<ToastProps> = ({
       case 'error':
         return <FaTimes className="text-red-400" size={20} />;
       case 'info':
-        return <FaCheckCircle className="text-blue-400" size={20} />;
+        return <FaCheckCircle className="text-gray-400" size={20} />;
       default:
         return <FaCheckCircle className="text-green-400" size={20} />;
     }

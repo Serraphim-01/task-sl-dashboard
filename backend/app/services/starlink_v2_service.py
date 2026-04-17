@@ -385,3 +385,138 @@ class StarlinkV2Service:
         logger.info(f"[STARLINK API] Endpoint: GET /routers/{router_id}\n")
         
         return await self._make_request("GET", f"/routers/{router_id}")
+    
+    async def get_router_config(self, config_id: str) -> Dict[str, Any]:
+        """
+        Get router configuration
+        
+        Args:
+            config_id: Config ID (required)
+            
+        Returns:
+            Router configuration details including configId, nickname, and routerConfigJson
+            
+        Reference: https://starlink.com/api/public/v2/routers/configs/{configId}
+        """
+        logger.info(f"\n[STARLINK API] Fetching router config: {config_id}")
+        logger.info(f"[STARLINK API] Endpoint: GET /routers/configs/{config_id}\n")
+        
+        return await self._make_request("GET", f"/routers/configs/{config_id}")
+    
+    async def get_default_router_config(self) -> Dict[str, Any]:
+        """
+        Get default router configuration that will be assigned to new routers
+        
+        Returns:
+            Default router config including configId that will be assigned to routers when first added
+            
+        Reference: https://starlink.com/api/public/v2/routers/configs/default
+        """
+        logger.info(f"\n[STARLINK API] Fetching default router config")
+        logger.info(f"[STARLINK API] Endpoint: GET /routers/configs/default\n")
+        
+        return await self._make_request("GET", "/routers/configs/default")
+    
+    async def get_products(self) -> Dict[str, Any]:
+        """
+        Get all available products from Starlink
+        
+        Returns:
+            List of all available products with details including names, descriptions, and pricing
+            
+        Reference: https://starlink.com/api/public/v2/products
+        """
+        logger.info(f"\n[STARLINK API] Fetching all products")
+        logger.info(f"[STARLINK API] Endpoint: GET /products\n")
+        
+        return await self._make_request("GET", "/products")
+    
+    async def get_product(self, product_reference_id: str) -> Dict[str, Any]:
+        """
+        Get a specific product by reference ID
+        
+        Args:
+            product_reference_id: Product reference ID (required)
+            
+        Returns:
+            Product details including name, description, and pricing
+            
+        Reference: https://starlink.com/api/public/v2/products/{productReferenceId}
+        """
+        logger.info(f"\n[STARLINK API] Fetching product: {product_reference_id}")
+        logger.info(f"[STARLINK API] Endpoint: GET /products/{product_reference_id}\n")
+        
+        return await self._make_request("GET", f"/products/{product_reference_id}")
+    
+    async def get_addresses(self) -> Dict[str, Any]:
+        """
+        Get all addresses from Starlink
+        
+        Returns:
+            List of all addresses with pagination
+            
+        Reference: https://starlink.com/api/public/v2/addresses
+        """
+        logger.info(f"\n[STARLINK API] Fetching all addresses")
+        logger.info(f"[STARLINK API] Endpoint: GET /addresses\n")
+        
+        return await self._make_request("GET", "/addresses")
+    
+    async def get_address(self, address_reference_id: str) -> Dict[str, Any]:
+        """
+        Get a specific address by reference ID
+        
+        Args:
+            address_reference_id: Address reference ID (required)
+            
+        Returns:
+            Address details including address lines, locality, region, coordinates, etc.
+            
+        Reference: https://starlink.com/api/public/v2/addresses/{addressReferenceId}
+        """
+        logger.info(f"\n[STARLINK API] Fetching address: {address_reference_id}")
+        logger.info(f"[STARLINK API] Endpoint: GET /addresses/{address_reference_id}\n")
+        
+        return await self._make_request("GET", f"/addresses/{address_reference_id}")
+    
+    async def get_router_local_content(self) -> Dict[str, Any]:
+        """
+        Get list of router local content files
+        
+        Returns:
+            List of router local content files
+            
+        Reference: https://starlink.com/api/public/v2/routers/local-content
+        """
+        logger.info(f"\n[STARLINK API] Fetching router local content files")
+        logger.info(f"[STARLINK API] Endpoint: GET /routers/local-content\n")
+        
+        return await self._make_request("GET", "/routers/local-content")
+    
+    async def get_sandbox_clients(self) -> Dict[str, Any]:
+        """
+        Get sandbox clients
+        
+        Returns:
+            List of sandbox clients
+            
+        Reference: https://starlink.com/api/public/v2/routers/sandbox/clients
+        """
+        logger.info(f"\n[STARLINK API] Fetching sandbox clients")
+        logger.info(f"[STARLINK API] Endpoint: GET /routers/sandbox/clients\n")
+        
+        return await self._make_request("GET", "/routers/sandbox/clients")
+    
+    async def get_tls_configs(self) -> Dict[str, Any]:
+        """
+        Get TLS configurations
+        
+        Returns:
+            List of TLS configurations
+            
+        Reference: https://starlink.com/api/public/v2/routers/configs/tls
+        """
+        logger.info(f"\n[STARLINK API] Fetching TLS configurations")
+        logger.info(f"[STARLINK API] Endpoint: GET /routers/configs/tls\n")
+        
+        return await self._make_request("GET", "/routers/configs/tls")

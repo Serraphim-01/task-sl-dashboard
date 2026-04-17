@@ -47,14 +47,14 @@ const AlertsViewer: React.FC = () => {
             <div key={alert.id || index} className={`p-3 md:p-5 rounded border-l-4 shadow-starlink ${
               alert.severity === 'critical' ? 'bg-red-900/50 border-red-600' : 
               alert.severity === 'warning' ? 'bg-yellow-900/30 border-yellow-500' : 
-              'bg-starlink-gray border-blue-500'
+              'bg-starlink-gray border-gray-500'
             }`}>
               <div className="flex justify-between items-start gap-2 mb-2 md:mb-3">
                 <h3 className="m-0 text-sm md:text-lg font-semibold text-starlink-text flex-1">{alert.title || alert.message || 'Alert'}</h3>
                 <span className={`px-2 py-1 rounded-full text-[10px] md:text-xs font-bold whitespace-nowrap ${
                   alert.severity === 'critical' ? 'bg-red-600 text-white' : 
                   alert.severity === 'warning' ? 'bg-yellow-500 text-black' : 
-                  'bg-blue-500 text-white'
+                  'bg-gray-500 text-white'
                 }`}>{alert.severity || 'info'}</span>
               </div>
               <p className="my-2 md:my-3 text-xs md:text-base text-starlink-text-secondary">{alert.description || alert.details || 'No additional details'}</p>
