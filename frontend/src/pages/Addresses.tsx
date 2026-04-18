@@ -74,8 +74,10 @@ const Addresses: React.FC = () => {
     setLoadingServiceLines(true);
     try {
       const response = await getServiceLines({ address_reference_id: addressId });
+      console.log('[DEBUG] Service Lines at Address:', response);
       if (response?.content?.results) {
         setServiceLinesAtAddress(response.content.results);
+        console.log(`[DEBUG] Found ${response.content.results.length} service lines at address ${addressId}`);
       }
     } catch (err: any) {
       console.error('Failed to fetch service lines for address:', err);

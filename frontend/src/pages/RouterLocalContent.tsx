@@ -24,7 +24,6 @@ const RouterLocalContent: React.FC = () => {
     setError(null);
     try {
       const response = await getRouterLocalContent();
-      console.log('Router Local Content API Response:', response);
       if (response?.content?.results) {
         setContentFiles(response.content.results);
       } else if (response?.content) {

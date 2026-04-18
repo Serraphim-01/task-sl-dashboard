@@ -11,7 +11,8 @@ import DefaultRouterConfig from './DefaultRouterConfig.tsx';
 import RouterLocalContent from './RouterLocalContent.tsx';
 import SandboxClients from './SandboxClients.tsx';
 import TlsConfigs from './TlsConfigs.tsx';
-import { FaUsers, FaCog, FaSignOutAlt, FaBars, FaLaptop, FaMapMarkerAlt, FaRoute, FaFileAlt, FaUsersCog, FaCertificate, FaBox } from 'react-icons/fa';
+import TelemetryStream from './TelemetryStream.tsx';
+import { FaUsers, FaCog, FaSignOutAlt, FaBars, FaLaptop, FaMapMarkerAlt, FaRoute, FaFileAlt, FaUsersCog, FaCertificate, FaBox, FaStream } from 'react-icons/fa';
 
 const AdminPortal: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -42,6 +43,7 @@ const AdminPortal: React.FC = () => {
     { path: '/admin/service-lines', label: 'Service Lines', icon: <FaLaptop /> },
     { path: '/admin/products', label: 'Products', icon: <FaBox /> },
     { path: '/admin/addresses', label: 'Addresses', icon: <FaMapMarkerAlt /> },
+    { path: '/admin/telemetry-stream', label: 'Telemetry Stream', icon: <FaStream /> },
     { path: '/admin/default-router-config', label: 'Default Router Config', icon: <FaRoute /> },
     { path: '/admin/router-local-content', label: 'Router Local Content', icon: <FaFileAlt /> },
     { path: '/admin/sandbox-clients', label: 'Sandbox Clients', icon: <FaUsersCog /> },
@@ -161,6 +163,7 @@ const AdminPortal: React.FC = () => {
             <Route path="/service-plan/:serviceLineNumber" element={<ServicePlan />} />
             <Route path="/products" element={<Products />} />
             <Route path="/addresses" element={<Addresses />} />
+            <Route path="/telemetry-stream" element={<TelemetryStream />} />
             <Route path="/default-router-config" element={<DefaultRouterConfig />} />
             <Route path="/router-local-content" element={<RouterLocalContent />} />
             <Route path="/sandbox-clients" element={<SandboxClients />} />
@@ -176,6 +179,7 @@ const AdminPortal: React.FC = () => {
             <Route path="/service-plan/:serviceLineNumber" element={<ServicePlan />} />
             <Route path="/products" element={<Products />} />
             <Route path="/addresses" element={<Addresses />} />
+            <Route path="/telemetry-stream" element={<TelemetryStream />} />
             <Route path="/default-router-config" element={<DefaultRouterConfig />} />
             <Route path="/router-local-content" element={<RouterLocalContent />} />
             <Route path="/sandbox-clients" element={<SandboxClients />} />

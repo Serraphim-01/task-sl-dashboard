@@ -257,6 +257,75 @@ async def get_statistics(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/starlink/telemetry/stream")
+async def get_telemetry_stream(
+    batch_size: Optional[int] = Body(None, description="Number of records per batch (max 65000, default 1000)"),
+    max_linger_ms: Optional[int] = Body(None, description="Max blocking time in ms (max 65000, default 15000)"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get telemetry data stream for all devices
+    Data is retrieved for all devices of the account.
+    Can be called repeatedly to generate a stream of data.
+    Required Permission: Device telemetry, View
+    
+    Response format:
+    - data.columnNamesByDeviceType: Column names for each device type (u=UserTerminal, r=Router, i=IpAllocs)
+    - data.values: Array of telemetry value arrays (compact format)
+    - metadata: Additional info including enum definitions
+    """
+    try:
+        kms = await get_kms_service()
+        
+        # Try to get current user's credentials first
+        if current_user.kms_client_id_secret_name and current_user.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                logger.info(f"Fetching telemetry stream: batch_size={batch_size}, max_linger_ms={max_linger_ms}")
+                result = await service.get_telemetry_stream(batch_size, max_linger_ms)
+                
+                if not result or result == {}:
+                    return {"message": "No telemetry stream data available"}
+                
+                logger.info(f"Successfully fetched telemetry stream")
+                return result
+        
+        # If current user doesn't have credentials, try first customer
+        from app.database import SessionLocal
+        db = SessionLocal()
+        try:
+            first_customer = db.query(User).filter(User.is_admin == False).first()
+            if first_customer:
+                client_id = await kms.get_secret(first_customer.kms_client_id_secret_name)
+                client_secret = await kms.get_secret(first_customer.kms_client_secret_secret_name)
+                
+                if client_id and client_secret:
+                    service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                    logger.info(f"Fetching telemetry stream (using first customer credentials): batch_size={batch_size}, max_linger_ms={max_linger_ms}")
+                    result = await service.get_telemetry_stream(batch_size, max_linger_ms)
+                    
+                    if not result or result == {}:
+                        return {"message": "No telemetry stream data available"}
+                    
+                    logger.info(f"Successfully fetched telemetry stream")
+                    return result
+        finally:
+            db.close()
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching telemetry stream: {str(e)}")
+        logger.error(f"Exception details: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch telemetry stream: {str(e)}")
+
+
 # ==================== TASK MANAGEMENT ENDPOINTS ====================
 
 @router.get("/starlink/tasks")

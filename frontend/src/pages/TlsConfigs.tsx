@@ -26,7 +26,6 @@ const TlsConfigs: React.FC = () => {
     setError(null);
     try {
       const response = await getTlsConfigs();
-      console.log('TLS Configs API Response:', response);
       if (response?.content?.results) {
         setConfigs(response.content.results);
       } else if (response?.content) {

@@ -24,7 +24,6 @@ const SandboxClients: React.FC = () => {
     setError(null);
     try {
       const response = await getSandboxClients();
-      console.log('Sandbox Clients API Response:', response);
       if (response?.content?.results) {
         setClients(response.content.results);
       } else if (response?.content) {

@@ -23,7 +23,6 @@ const DefaultRouterConfig: React.FC = () => {
     setError(null);
     try {
       const response = await getDefaultRouterConfig();
-      console.log('Default Router Config API Response:', response);
       if (response?.content) {
         setConfig(response.content);
       }

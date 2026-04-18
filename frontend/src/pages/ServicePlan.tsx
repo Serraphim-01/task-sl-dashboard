@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getServiceLine, getBillingPartialPeriods, getUserTerminals, getUserTerminalDetails, getRouterDetails, getRouterConfig, getDefaultRouterConfig, getProducts } from '../services/api.ts';
-import { FaEye } from 'react-icons/fa';
+import { getServiceLine, getBillingPartialPeriods, getUserTerminals, getUserTerminalDetails, getRouterDetails, getRouterConfig, getDefaultRouterConfig, getProducts, getServiceLineTelemetry, getAddresses, addAddressToServiceLine } from '../services/api.ts';
+import { FaEye, FaStream, FaMapMarkerAlt, FaPlus, FaTimes } from 'react-icons/fa';
 
 interface DataBlock {
   productId: string;
@@ -144,6 +144,41 @@ interface UserTerminalsResponse {
   };
 }
 
+interface DeviceTelemetryData {
+  deviceId: string;
+  deviceType: string;
+  lastUpdate?: string;
+  latestRecord: ParsedTelemetryRecord;
+}
+
+interface ParsedTelemetryRecord {
+  deviceType?: string;
+  deviceId?: string;
+  timestamp?: string;
+  timestampNs?: number;
+  [key: string]: any;
+}
+
+interface Address {
+  addressReferenceId: string;
+  addressLines?: string[];
+  locality?: string;
+  administrativeArea?: string;
+  administrativeAreaCode?: string;
+  region?: string;
+  regionCode?: string;
+  postalCode?: string;
+  metadata?: string;
+  formattedAddress?: string;
+  latitude?: number;
+  longitude?: number;
+  displayName?: string;
+  addressLine1?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
 const ServicePlan: React.FC = () => {
   const { serviceLineNumber } = useParams<{ serviceLineNumber: string }>();
   const navigate = useNavigate();
@@ -163,25 +198,240 @@ const ServicePlan: React.FC = () => {
   const [loadingProduct, setLoadingProduct] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Telemetry state
+  const [telemetryData, setTelemetryData] = useState<{[key: string]: DeviceTelemetryData}>({});
+  const [telemetryLoading, setTelemetryLoading] = useState(false);
+  
+  // Address state
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [currentAddress, setCurrentAddress] = useState<Address | null>(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [addressLoading, setAddressLoading] = useState(false);
 
   useEffect(() => {
     if (serviceLineNumber) {
       fetchServiceLineDetails();
     }
   }, [serviceLineNumber]);
+  
+  const fetchAddresses = async () => {
+    try {
+      const response = await getAddresses();
+      if (response?.content?.results) {
+        setAddresses(response.content.results);
+      }
+    } catch (err) {
+      console.error('Failed to fetch addresses:', err);
+    }
+  };
+  
+  const fetchCurrentAddress = async (addressReferenceId: string) => {
+    if (!addressReferenceId) {
+      setCurrentAddress(null);
+      return;
+    }
+    try {
+      const { getAddress } = await import('../services/api.ts');
+      const response = await getAddress(addressReferenceId);
+      if (response?.content) {
+        setCurrentAddress(response.content);
+      }
+    } catch (err) {
+      console.error('Failed to fetch current address:', err);
+      setCurrentAddress(null);
+    }
+  };
+  
+  const fetchTelemetryForServiceLine = async () => {
+    setTelemetryLoading(true);
+    setTelemetryData({});
+    
+    try {
+      // First, get the user terminals for this service line to extract device IDs
+      const userTerminalsResponse = await getUserTerminals(serviceLineNumber!);
+      
+      // Collect all device IDs (routers + user terminals) that belong to this service line
+      const deviceIds = new Set<string>();
+      
+      if (userTerminalsResponse?.content?.results) {
+        const terminals = userTerminalsResponse.content.results;
+        
+        console.log('[DEBUG] User Terminals from API:', terminals.map((t: UserTerminal) => ({
+          userTerminalId: t.userTerminalId,
+          kitSerialNumber: t.kitSerialNumber,
+          routers: t.routers?.length || 0
+        })));
+        
+        // Extract all device IDs: user terminals, routers, and IP allocations
+        terminals.forEach((terminal: UserTerminal) => {
+          // Add user terminal ID with 'ut' prefix to match telemetry format
+          if (terminal.userTerminalId) {
+            // Check if it already has 'ut' prefix, if not add it
+            const utId = terminal.userTerminalId.startsWith('ut') 
+              ? terminal.userTerminalId 
+              : `ut${terminal.userTerminalId}`;
+            deviceIds.add(utId);
+          }
+          
+          // Add all router IDs from this terminal
+          if (terminal.routers && terminal.routers.length > 0) {
+            terminal.routers.forEach(router => {
+              if (router.routerId) {
+                // Add both with and without "Router-" prefix to handle telemetry format
+                deviceIds.add(router.routerId);
+                deviceIds.add(`Router-${router.routerId}`);
+              }
+            });
+          }
+          
+          // Add IP allocation IDs if they exist
+          if (terminal.l2VpnCircuits && terminal.l2VpnCircuits.length > 0) {
+            terminal.l2VpnCircuits.forEach((circuit: any) => {
+              // Check if circuit has an associated IP allocation device ID
+              if (circuit.ipAllocationId) {
+                deviceIds.add(circuit.ipAllocationId);
+              }
+            });
+          }
+        });
+      }
+      
+      // If no devices found, return empty
+      if (deviceIds.size === 0) {
+        console.log('[DEBUG] No routers or user terminals found for this service line');
+        setTelemetryData({});
+        setTelemetryLoading(false);
+        return;
+      }
+      
+      console.log('[DEBUG] Device IDs to filter:', Array.from(deviceIds));
+      
+      // Fetch telemetry stream
+      const response = await getServiceLineTelemetry(serviceLineNumber!);
+      
+      // Debug: Log full telemetry before filtering
+      console.log('[DEBUG] Full telemetry response (before filtering):', response?.data);
+      
+      if (response?.data?.values && response?.data?.columnNamesByDeviceType) {
+        const { values, columnNamesByDeviceType } = response.data;
+        const updates: {[key: string]: DeviceTelemetryData} = {};
+        
+        for (const valueArray of values) {
+          if (!Array.isArray(valueArray) || valueArray.length === 0) continue;
+          
+          const deviceType = valueArray[0];
+          const columnNames = columnNamesByDeviceType[deviceType];
+          
+          if (!columnNames) continue;
+          
+          const record: ParsedTelemetryRecord = {};
+          let deviceId = '';
+          
+          for (let i = 0; i < columnNames.length; i++) {
+            const columnName = columnNames[i];
+            const value = valueArray[i];
+            
+            if (columnName === 'DeviceType') {
+              record.deviceType = getDeviceTypeLabel(value);
+            } else if (columnName === 'UtcTimestampNs') {
+              record.timestampNs = value;
+              record.timestamp = nanosecondsToISOString(value);
+            } else if (columnName === 'DeviceId') {
+              record.deviceId = value;
+              deviceId = value;
+            } else {
+              record[columnName] = value;
+            }
+          }
+          
+          // Only include devices (routers or user terminals) that belong to this service line
+          if (deviceId && deviceIds.has(deviceId)) {
+            updates[deviceId] = {
+              deviceId,
+              deviceType: record.deviceType || 'Unknown',
+              lastUpdate: record.timestamp,
+              latestRecord: record
+            };
+          }
+        }
+        
+        console.log(`[DEBUG] Filtered telemetry for ${Object.keys(updates).length} devices (routers + user terminals) belonging to this service line`);
+        setTelemetryData(updates);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch telemetry:', err);
+      setError(err.response?.data?.detail || 'Failed to fetch telemetry');
+    } finally {
+      setTelemetryLoading(false);
+    }
+  };
+  
+  const getDeviceTypeLabel = (typeCode: string): string => {
+    const typeMap: { [key: string]: string } = {
+      'u': 'User Terminal',
+      'r': 'Router',
+      'i': 'IP Allocation'
+    };
+    return typeMap[typeCode] || typeCode;
+  };
+  
+  const nanosecondsToISOString = (ns: number): string => {
+    const ms = ns / 1000000;
+    return new Date(ms).toISOString();
+  };
+  
+  const formatDeviceId = (deviceId: string): string => {
+    // Format: show first part before dash and last 3 characters
+    // e.g., "ut21b09485-0611821c-99957127" -> "ut21b09485-***127"
+    // e.g., "Router-010000000000000001527F8B" -> "Router-***F8B"
+    const dashIndex = deviceId.indexOf('-');
+    if (dashIndex === -1) {
+      // No dash, just show first 4 and last 3
+      if (deviceId.length <= 7) return deviceId;
+      return `${deviceId.substring(0, 4)}...${deviceId.slice(-3)}`;
+    }
+    
+    const prefix = deviceId.substring(0, dashIndex);
+    const last3 = deviceId.slice(-3);
+    return `${prefix}-***${last3}`;
+  };
+  
+  const handleAddAddress = async () => {
+    setSelectedAddressId('');
+    setShowAddressModal(true);
+  };
+  
+  const handleConfirmAddAddress = async () => {
+    if (!selectedAddressId || !serviceLineNumber) return;
+    
+    setAddressLoading(true);
+    try {
+      await addAddressToServiceLine(serviceLineNumber, selectedAddressId);
+      setShowAddressModal(false);
+      setSelectedAddressId('');
+      // Refresh service line details and current address
+      fetchServiceLineDetails();
+      fetchCurrentAddress(selectedAddressId);
+    } catch (err: any) {
+      console.error('Failed to add address:', err);
+      setError(err.response?.data?.detail || 'Failed to add address to service line');
+    } finally {
+      setAddressLoading(false);
+    }
+  };
 
   const fetchProductsAndMatch = async (productReferenceId: string) => {
     setLoadingProduct(true);
     try {
       const response = await getProducts();
-      console.log('[DEBUG] All Products Response:', response);
       const productsArray = response?.content?.results || response?.content || [];
       
       if (Array.isArray(productsArray)) {
         const matchingProduct = productsArray.find(
           (p: any) => p.productReferenceId === productReferenceId || p.id === productReferenceId
         );
-        console.log('[DEBUG] Matching Product:', matchingProduct);
         setProductData(matchingProduct || null);
       }
     } catch (err: any) {
@@ -200,7 +450,7 @@ const ServicePlan: React.FC = () => {
         throw new Error('Service line number is required');
       }
       
-      // Fetch service line details, billing periods, and user terminals in parallel
+      // Fetch service line details, billing periods, user terminals, and addresses in parallel
       const [serviceLineResponse, billingPeriodsResponse, userTerminalsResponse] = await Promise.all([
         getServiceLine(serviceLineNumber),
         getBillingPartialPeriods(serviceLineNumber).catch((err) => {
@@ -218,10 +468,16 @@ const ServicePlan: React.FC = () => {
         fetchProductsAndMatch(serviceLineResponse.content.productReferenceId);
       }
       
-      // Debug: Log the API responses
-      console.log('[DEBUG] Service Line Response:', serviceLineResponse);
-      console.log('[DEBUG] Billing Periods Response:', billingPeriodsResponse);
-      console.log('[DEBUG] User Terminals Response:', userTerminalsResponse);
+      // Fetch current address if service line has one
+      if (serviceLineResponse?.content?.addressReferenceId) {
+        fetchCurrentAddress(serviceLineResponse.content.addressReferenceId);
+      }
+      
+      // Fetch addresses list
+      fetchAddresses();
+      
+      // Fetch telemetry for this service line
+      fetchTelemetryForServiceLine();
       
       // Set billing periods data even if empty
       if (billingPeriodsResponse) {
@@ -476,9 +732,6 @@ const ServicePlan: React.FC = () => {
                 <div className="space-y-6">
                   {/* Service Plan Info */}
                   {(() => {
-                    // Debug: Log product data
-                    console.log('[DEBUG] Product Data:', productData);
-                    
                     return (
                       <div className="p-4 bg-gradient-to-r from-starlink-accent/20 to-starlink-light rounded border border-starlink-accent/30">
                         <div className="flex items-start justify-between mb-3">
@@ -1283,6 +1536,358 @@ const ServicePlan: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Addresses Section */}
+        <div className="card p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg md:text-xl font-semibold text-starlink-text flex items-center gap-2">
+                <FaMapMarkerAlt className="text-starlink-accent" />
+                Address
+              </h2>
+              <p className="text-xs md:text-sm text-starlink-text-secondary mt-1">
+                Address linked to this service line
+              </p>
+            </div>
+          </div>
+          
+          {currentAddress ? (
+            <div className="p-4 bg-starlink-light rounded border border-starlink-border">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentAddress.formattedAddress && (
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Address</p>
+                    <p className="text-sm text-starlink-text font-semibold">{currentAddress.formattedAddress}</p>
+                  </div>
+                )}
+                {currentAddress.addressLines && currentAddress.addressLines.length > 0 && (
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Street Address</p>
+                    <div className="space-y-1">
+                      {currentAddress.addressLines.map((line, index) => (
+                        <p key={index} className="text-sm text-starlink-text">{line}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {currentAddress.locality && (
+                  <div>
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">City</p>
+                    <p className="text-sm text-starlink-text">{currentAddress.locality}</p>
+                  </div>
+                )}
+                {currentAddress.administrativeArea && (
+                  <div>
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">State</p>
+                    <p className="text-sm text-starlink-text">{currentAddress.administrativeArea}</p>
+                  </div>
+                )}
+                {currentAddress.administrativeAreaCode && (
+                  <div>
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">State Code</p>
+                    <p className="text-sm text-starlink-text font-mono">{currentAddress.administrativeAreaCode}</p>
+                  </div>
+                )}
+                {currentAddress.region && (
+                  <div>
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Region</p>
+                    <p className="text-sm text-starlink-text">{currentAddress.region}</p>
+                  </div>
+                )}
+                {currentAddress.regionCode && (
+                  <div>
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Region Code</p>
+                    <p className="text-sm text-starlink-text font-mono">{currentAddress.regionCode}</p>
+                  </div>
+                )}
+                {currentAddress.postalCode && (
+                  <div>
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Postal Code</p>
+                    <p className="text-sm text-starlink-text font-mono">{currentAddress.postalCode}</p>
+                  </div>
+                )}
+                {currentAddress.latitude !== undefined && currentAddress.longitude !== undefined && (
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Coordinates</p>
+                    <p className="text-sm text-starlink-text font-mono">
+                      Lat: {currentAddress.latitude.toFixed(6)}, Lon: {currentAddress.longitude.toFixed(6)}
+                    </p>
+                  </div>
+                )}
+                {currentAddress.addressReferenceId && (
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Address Reference ID</p>
+                    <p className="text-xs text-starlink-text font-mono break-all">{currentAddress.addressReferenceId}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
+              <FaMapMarkerAlt className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
+              <p className="text-sm text-starlink-text-secondary mb-3">
+                No address is currently linked to this service line.
+              </p>
+              <button
+                onClick={handleAddAddress}
+                className="btn-primary inline-flex items-center gap-2"
+              >
+                <FaPlus />
+                Add Address
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* Telemetry Section */}
+        <div className="card p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg md:text-xl font-semibold text-starlink-text flex items-center gap-2">
+                <FaStream className="text-starlink-accent" />
+                Device Telemetry
+              </h2>
+              <p className="text-xs md:text-sm text-starlink-text-secondary mt-1">
+                Real-time telemetry for user terminals and routers on this service line
+              </p>
+            </div>
+          </div>
+          
+          {telemetryLoading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin text-4xl mb-4">⏳</div>
+              <p className="text-starlink-text-secondary">Loading telemetry data...</p>
+            </div>
+          ) : Object.keys(telemetryData).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.values(telemetryData).map((device) => (
+                <div 
+                  key={device.deviceId}
+                  className="card p-4 bg-starlink-gray border border-starlink-border hover:border-starlink-accent/50 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start gap-2 flex-1">
+                      <div className={`p-2 rounded-lg ${
+                        device.deviceType === 'User Terminal' ? 'bg-blue-600/20' :
+                        device.deviceType === 'Router' ? 'bg-purple-600/20' :
+                        'bg-green-600/20'
+                      }`}>
+                        {device.deviceType === 'User Terminal' ? '📡' :
+                         device.deviceType === 'Router' ? '🌐' :
+                         '🔌'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-starlink-text truncate" title={device.deviceId}>
+                          {formatDeviceId(device.deviceId)}
+                        </h3>
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          device.deviceType === 'User Terminal' ? 'bg-blue-600/20 text-blue-400' :
+                          device.deviceType === 'Router' ? 'bg-purple-600/20 text-purple-400' :
+                          'bg-green-600/20 text-green-400'
+                        }`}>
+                          {device.deviceType}
+                        </span>
+                      </div>
+                    </div>
+                    {device.lastUpdate && (
+                      <span className="text-[10px] text-starlink-text-secondary">
+                        {new Date(device.lastUpdate).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {/* User Terminal specific fields */}
+                    {device.deviceType === 'User Terminal' && (
+                      <>
+                        {device.latestRecord.DownlinkThroughput !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">↓ Downlink</span>
+                            <span className="text-sm font-bold text-starlink-text">{device.latestRecord.DownlinkThroughput} Mbps</span>
+                          </div>
+                        )}
+                        {device.latestRecord.UplinkThroughput !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">↑ Uplink</span>
+                            <span className="text-sm font-bold text-starlink-text">{device.latestRecord.UplinkThroughput} Mbps</span>
+                          </div>
+                        )}
+                        {device.latestRecord.PingLatencyMsAvg !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">⏱ Latency</span>
+                            <span className={`text-sm font-bold ${
+                              device.latestRecord.PingLatencyMsAvg < 50 ? 'text-green-400' :
+                              device.latestRecord.PingLatencyMsAvg < 100 ? 'text-yellow-400' :
+                              'text-red-400'
+                            }`}>{device.latestRecord.PingLatencyMsAvg} ms</span>
+                          </div>
+                        )}
+                        {device.latestRecord.PingDropRateAvg !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">📉 Drop Rate</span>
+                            <span className={`text-sm font-bold ${
+                              device.latestRecord.PingDropRateAvg === 0 ? 'text-green-400' :
+                              device.latestRecord.PingDropRateAvg < 0.01 ? 'text-yellow-400' :
+                              'text-red-400'
+                            }`}>{(device.latestRecord.PingDropRateAvg * 100).toFixed(4)}%</span>
+                          </div>
+                        )}
+                        {device.latestRecord.SignalQuality !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">📶 Signal</span>
+                            <span className={`text-sm font-bold ${
+                              device.latestRecord.SignalQuality >= 0.8 ? 'text-green-400' :
+                              device.latestRecord.SignalQuality >= 0.5 ? 'text-yellow-400' :
+                              'text-red-400'
+                            }`}>{(device.latestRecord.SignalQuality * 100).toFixed(1)}%</span>
+                          </div>
+                        )}
+                        {device.latestRecord.Uptime !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">⏰ Uptime</span>
+                            <span className="text-sm font-semibold text-starlink-text">
+                              {(() => {
+                                const seconds = device.latestRecord.Uptime;
+                                const days = Math.floor(seconds / 86400);
+                                const hours = Math.floor((seconds % 86400) / 3600);
+                                const minutes = Math.floor((seconds % 3600) / 60);
+                                if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+                                if (hours > 0) return `${hours}h ${minutes}m`;
+                                return `${minutes}m`;
+                              })()}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Router specific fields */}
+                    {device.deviceType === 'Router' && (
+                      <>
+                        {device.latestRecord.WifiUptimeS !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">⏰ Uptime</span>
+                            <span className="text-sm font-semibold text-starlink-text">
+                              {(() => {
+                                const seconds = device.latestRecord.WifiUptimeS;
+                                const days = Math.floor(seconds / 86400);
+                                const hours = Math.floor((seconds % 86400) / 3600);
+                                const minutes = Math.floor((seconds % 3600) / 60);
+                                if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+                                if (hours > 0) return `${hours}h ${minutes}m`;
+                                return `${minutes}m`;
+                              })()}
+                            </span>
+                          </div>
+                        )}
+                        {device.latestRecord.InternetPingLatencyMs !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">⏱ Internet Latency</span>
+                            <span className={`text-sm font-bold ${
+                              device.latestRecord.InternetPingLatencyMs < 50 ? 'text-green-400' :
+                              device.latestRecord.InternetPingLatencyMs < 100 ? 'text-yellow-400' :
+                              'text-red-400'
+                            }`}>{device.latestRecord.InternetPingLatencyMs} ms</span>
+                          </div>
+                        )}
+                        {device.latestRecord.InternetPingDropRate !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">📉 Internet Drop</span>
+                            <span className={`text-sm font-bold ${
+                              device.latestRecord.InternetPingDropRate === 0 ? 'text-green-400' :
+                              device.latestRecord.InternetPingDropRate < 0.01 ? 'text-yellow-400' :
+                              'text-red-400'
+                            }`}>{(device.latestRecord.InternetPingDropRate * 100).toFixed(4)}%</span>
+                          </div>
+                        )}
+                        {device.latestRecord.Clients !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">👥 Clients</span>
+                            <span className="text-sm font-bold text-starlink-text">{device.latestRecord.Clients}</span>
+                          </div>
+                        )}
+                        {device.latestRecord.WanRxBytes !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">↓ Downloaded</span>
+                            <span className="text-sm font-semibold text-starlink-text">
+                              {(device.latestRecord.WanRxBytes / 1073741824).toFixed(2)} GB
+                            </span>
+                          </div>
+                        )}
+                        {device.latestRecord.WanTxBytes !== undefined && (
+                          <div className="flex items-center justify-between p-2 bg-starlink-light rounded">
+                            <span className="text-xs text-starlink-text-secondary">↑ Uploaded</span>
+                            <span className="text-sm font-semibold text-starlink-text">
+                              {(device.latestRecord.WanTxBytes / 1073741824).toFixed(2)} GB
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center">
+              <FaStream className="text-4xl text-starlink-text-secondary mx-auto mb-3" />
+              <p className="text-sm text-starlink-text-secondary">
+                No telemetry data available for devices on this service line.
+              </p>
+            </div>
+          )}
+        </div>
+        
+        {/* Address Modal */}
+        {showAddressModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="card w-full max-w-md">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-starlink-text">Add Address to Service Line</h3>
+                <button
+                  onClick={() => setShowAddressModal(false)}
+                  className="p-1 hover:bg-starlink-light rounded"
+                >
+                  <FaTimes className="text-starlink-text" />
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-xs text-starlink-text-secondary mb-2">
+                  Select Address
+                </label>
+                <select
+                  value={selectedAddressId}
+                  onChange={(e) => setSelectedAddressId(e.target.value)}
+                  className="input-field w-full text-sm"
+                >
+                  <option value="">Select an address...</option>
+                  {addresses.map((address) => (
+                    <option key={address.addressReferenceId} value={address.addressReferenceId}>
+                      {address.displayName || address.addressLine1 || address.addressReferenceId}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConfirmAddAddress}
+                  disabled={!selectedAddressId || addressLoading}
+                  className="btn-primary flex-1 disabled:opacity-50"
+                >
+                  {addressLoading ? 'Adding...' : 'Add Address'}
+                </button>
+                <button
+                  onClick={() => setShowAddressModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Refresh Button */}
         <div className="mt-6 text-center">

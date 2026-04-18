@@ -151,6 +151,21 @@ export const getTelemetry = async (deviceId?: string) => {
   return response.data;
 };
 
+// Telemetry Stream
+export const getTelemetryStream = async (batchSize?: number, maxLingerMs?: number) => {
+  const body: any = {};
+  if (batchSize !== undefined) body.batchSize = batchSize;
+  if (maxLingerMs !== undefined) body.maxLingerMs = maxLingerMs;
+  const response = await api.post('/customer/starlink/telemetry/stream', body);
+  return response.data;
+};
+
+// Service Line Telemetry (fetch once, not stream)
+export const getServiceLineTelemetry = async (serviceLineNumber: string) => {
+  const response = await api.get(`/admin/service-lines/${serviceLineNumber}/telemetry`);
+  return response.data;
+};
+
 export const getStatistics = async (deviceId?: string, startTime?: string, endTime?: string) => {
   const params: any = {};
   if (deviceId) params.deviceId = deviceId;
@@ -267,6 +282,17 @@ export const getAddresses = async () => {
 
 export const getAddress = async (addressReferenceId: string) => {
   const response = await api.get(`/admin/addresses/${addressReferenceId}`);
+  return response.data;
+};
+
+// Service Line Address Management
+export const addAddressToServiceLine = async (serviceLineNumber: string, addressReferenceId: string) => {
+  const response = await api.post(`/admin/service-lines/${serviceLineNumber}/addresses`, { address_reference_id: addressReferenceId });
+  return response.data;
+};
+
+export const removeAddressFromServiceLine = async (serviceLineNumber: string, addressReferenceId: string) => {
+  const response = await api.delete(`/admin/service-lines/${serviceLineNumber}/addresses/${addressReferenceId}`);
   return response.data;
 };
 

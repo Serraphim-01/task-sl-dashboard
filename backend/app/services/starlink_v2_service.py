@@ -191,6 +191,41 @@ class StarlinkV2Service:
         params = {"deviceId": device_id} if device_id else {}
         return await self._make_request("GET", "/telemetry", params=params)
     
+    async def get_telemetry_stream(
+        self,
+        batch_size: Optional[int] = None,
+        max_linger_ms: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Get telemetry data stream for all devices
+        
+        Args:
+            batch_size: The number of device data records to return per batch (max 65000, default 1000)
+            max_linger_ms: Maximum time in milliseconds to block while collecting data (max 65000, default 15000)
+            
+        Returns:
+            Telemetry stream data with compact format:
+            - data.columnNamesByDeviceType: Column names for each device type
+            - data.values: Array of telemetry value arrays
+            - metadata: Additional info including enum definitions
+            
+        Reference: https://starlink.readme.io/docs/telemetry-api
+        Required Permission: Device telemetry, View
+        """
+        # Default values if not provided
+        body = {
+            "batchSize": batch_size if batch_size is not None else 1000,
+            "maxLingerMs": max_linger_ms if max_linger_ms is not None else 15000
+        }
+        
+        # Cap at maximums
+        body["batchSize"] = min(body["batchSize"], 65000)
+        body["maxLingerMs"] = min(body["maxLingerMs"], 65000)
+        
+        logger.info(f"[STARLINK API] Fetching telemetry stream: batchSize={body['batchSize']}, maxLingerMs={body['maxLingerMs']}")
+        
+        return await self._make_request("POST", "/telemetry/stream", json_data=body)
+    
     async def get_statistics(
         self, 
         device_id: Optional[str] = None,
