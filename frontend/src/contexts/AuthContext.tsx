@@ -8,6 +8,7 @@ interface User {
   userId: number | null;
   email?: string;
   enterpriseName?: string;
+  serviceLineNumber?: string;  // Added for customer service line association
   mustChangePassword?: boolean;
 }
 
@@ -73,6 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userId: userResponse.data.user_id || null,
         email: userResponse.data.email || email,
         enterpriseName: userResponse.data.enterprise_name || undefined,
+        serviceLineNumber: userResponse.data.service_line_number || undefined,
         mustChangePassword: userResponse.data.must_change_password
       });
     } catch (error) {

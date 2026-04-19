@@ -412,7 +412,7 @@ const CustomerLogin: React.FC = () => {
 
               {/* First Login - Step 2: Password Setup */}
               {firstLoginStep === 2 && (
-                <form onSubmit={handleFirstLoginPasswordSubmit} className="space-y-6">
+                <div className="space-y-6">
                   <div className="bg-green-900/30 border border-green-700 p-4 rounded">
                     <p className="text-green-200 text-sm">
                       ✓ Account verified. Please set your password.
@@ -498,14 +498,14 @@ const CustomerLogin: React.FC = () => {
                       Back
                     </button>
                     <button
-                      type="submit"
+                      onClick={handleFirstLoginPasswordSubmit}
                       disabled={changingPassword || !passwordMatch}
                       className="flex-1 btn-primary py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {changingPassword ? 'Setting Password...' : 'Set Password & Login'}
                     </button>
                   </div>
-                </form>
+                </div>
               )}
             </>
           )}

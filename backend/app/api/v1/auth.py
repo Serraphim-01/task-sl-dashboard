@@ -37,6 +37,7 @@ class UserResponse(BaseModel):
     enterprise_name: str
     is_admin: bool
     must_change_password: bool
+    service_line_number: Optional[str] = None  # Service line associated with customer
 
 
 class ChangePasswordRequest(BaseModel):
@@ -289,7 +290,8 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         email=current_user.email,
         enterprise_name=current_user.enterprise_name,
         is_admin=current_user.is_admin,
-        must_change_password=current_user.must_change_password
+        must_change_password=current_user.must_change_password,
+        service_line_number=current_user.service_line_number  # Include service line for customers
     )
 
 

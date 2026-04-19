@@ -91,6 +91,54 @@ class AzureKeyVaultService:
             logger.error(f"Failed to store secret {secret_name}: {e}")
             return False
     
+    async def list_secrets(self) -> Optional[list]:
+        """
+        List all secrets in Key Vault (names only, not values).
+        
+        Returns:
+            List of secret properties (name, content_type, etc.), or None if failed
+        """
+        if not self.vault_url:
+            logger.warning(f"KMS disabled, cannot list secrets")
+            return None
+        
+        try:
+            logger.info(f"Listing all secrets in vault: {self.vault_url}")
+            client = await self._get_client()
+            secrets = []
+            async for secret_properties in client.list_properties_of_secrets():
+                secrets.append({
+                    'name': secret_properties.name,
+                    'content_type': secret_properties.content_type,
+                    'enabled': secret_properties.enabled,
+                    'created_on': secret_properties.created_on.isoformat() if secret_properties.created_on else None,
+                    'updated_on': secret_properties.updated_on.isoformat() if secret_properties.updated_on else None
+                })
+            logger.info(f"Found {len(secrets)} secrets in vault")
+            return secrets
+        except Exception as e:
+            logger.error(f"Failed to list secrets: {e}")
+            return None
+    
+    async def delete_secret(self, secret_name: str) -> bool:
+        """
+        Delete a secret from Key Vault (soft delete).
+        
+        Args:
+            secret_name: Name of the secret to delete
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            client = await self._get_client()
+            await client.begin_delete_secret(secret_name)
+            logger.info(f"Successfully deleted secret: {secret_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete secret {secret_name}: {e}")
+            return False
+    
     async def close(self):
         """Close the client connection."""
         if self._client:

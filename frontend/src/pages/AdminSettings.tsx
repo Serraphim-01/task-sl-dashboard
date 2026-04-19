@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import { changePassword } from '../services/api.ts';
+import { changePassword, getKMSStatus, listKMSSecrets } from '../services/api.ts';
 import api from '../services/api.ts';
-import { FaArrowLeft, FaUser } from 'react-icons/fa';
+import { FaArrowLeft, FaUser, FaKey, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
 
 const AdminSettings: React.FC = () => {
   const { user, logout } = useAuth();
@@ -12,6 +12,9 @@ const AdminSettings: React.FC = () => {
     email: ''
   });
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'profile' | 'credentials'>('profile');
+  
+  // Password change state
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [passwordData, setPasswordData] = useState({
@@ -23,10 +26,18 @@ const AdminSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  
+  // KMS/Credentials state
+  const [kmsStatus, setKmsStatus] = useState<any>(null);
+  const [kmsSecrets, setKmsSecrets] = useState<any[]>([]);
+  const [kmsLoading, setKmsLoading] = useState(false);
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+    if (activeTab === 'credentials') {
+      fetchKMSData();
+    }
+  }, [activeTab]);
 
   const fetchUserData = async () => {
     try {
@@ -38,6 +49,25 @@ const AdminSettings: React.FC = () => {
       setError('Failed to load user data');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const fetchKMSData = async () => {
+    setKmsLoading(true);
+    setError(null);
+    try {
+      // Fetch KMS status and secrets in parallel
+      const [statusResponse, secretsResponse] = await Promise.all([
+        getKMSStatus(),
+        listKMSSecrets()
+      ]);
+      
+      setKmsStatus(statusResponse);
+      setKmsSecrets(secretsResponse.secrets || []);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load KMS data');
+    } finally {
+      setKmsLoading(false);
     }
   };
 
@@ -103,6 +133,8 @@ const AdminSettings: React.FC = () => {
       setSaving(false);
     }
   };
+  
+
 
   const getStrengthColor = (strength: number) => {
     if (strength === 0) return 'bg-gray-600';
@@ -130,7 +162,7 @@ const AdminSettings: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-starlink-darker p-3 md:p-6 lg:p-8 ml-[25px] md:ml-0">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-2 md:mb-4">
           <button
@@ -140,22 +172,51 @@ const AdminSettings: React.FC = () => {
             <FaArrowLeft />
             <span>Back to Portal</span>
           </button>
-          <h1 className="text-xl md:text-3xl font-bold text-starlink-text">Settings</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-starlink-text">Admin Settings</h1>
         </div>
 
         {error && (
-          <div className="bg-red-900/20 border border-red-700 text-red-200 px-3 py-2 rounded mb-4 text-sm">
+          <div className="bg-red-900/20 border border-red-700 text-red-200 px-3 py-2 rounded mb-4 text-sm flex items-center gap-2">
+            <FaExclamationTriangle />
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-900/20 border border-green-700 text-green-200 px-3 py-2 rounded mb-4 text-sm">
+          <div className="bg-green-900/20 border border-green-700 text-green-200 px-3 py-2 rounded mb-4 text-sm flex items-center gap-2">
+            <FaCheckCircle />
             {success}
           </div>
         )}
+        
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-starlink-border">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'profile'
+                ? 'border-starlink-accent text-starlink-accent'
+                : 'border-transparent text-starlink-text-secondary hover:text-starlink-text'
+            }`}
+          >
+            <FaUser className="inline mr-2" />
+            Profile
+          </button>
+          <button
+            onClick={() => setActiveTab('credentials')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'credentials'
+                ? 'border-starlink-accent text-starlink-accent'
+                : 'border-transparent text-starlink-text-secondary hover:text-starlink-text'
+            }`}
+          >
+            <FaKey className="inline mr-2" />
+            Starlink Credentials
+          </button>
+        </div>
 
-        {!showChangePassword ? (
+        {/* Profile Tab */}
+        {activeTab === 'profile' && !showChangePassword && (
           <div className="space-y-4 md:space-y-6">
             {/* Profile Information */}
             <div className="card p-4 md:p-6">
@@ -179,7 +240,10 @@ const AdminSettings: React.FC = () => {
               Change Password
             </button>
           </div>
-        ) : (
+        )}
+        
+        {/* Change Password Form */}
+        {activeTab === 'profile' && showChangePassword && (
           <div className="card p-4 md:p-6">
             <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 md:mb-6">Change Password</h2>
             <form onSubmit={handleSubmitPassword} className="space-y-3 md:space-y-4">
@@ -281,6 +345,66 @@ const AdminSettings: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+        
+        {/* Credentials Tab */}
+        {activeTab === 'credentials' && (
+          <div className="space-y-4 md:space-y-6">
+            {/* KMS Status */}
+            {kmsStatus && (
+              <div className="card p-4 md:p-6">
+                <h3 className="text-lg font-semibold text-starlink-text mb-4">Azure Key Vault Status</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                    <p className="text-xs text-starlink-text-secondary uppercase mb-1">Vault URL</p>
+                    <p className="text-sm text-starlink-text font-mono break-all">
+                      {kmsStatus.vault_url || 'Not configured'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                    <p className="text-xs text-starlink-text-secondary uppercase mb-1">Connection</p>
+                    <p className={`text-sm font-semibold ${
+                      kmsStatus.vault_connected ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {kmsStatus.vault_connected ? '✓ Connected' : '✗ Not Connected'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                    <p className="text-xs text-starlink-text-secondary uppercase mb-1">Credentials Configured</p>
+                    <p className={`text-sm font-semibold ${
+                      kmsStatus.has_credentials_configured ? 'text-green-400' : 'text-yellow-400'
+                    }`}>
+                      {kmsStatus.has_credentials_configured ? '✓ Yes' : '✗ No'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-starlink-light rounded border border-starlink-border">
+                    <p className="text-xs text-starlink-text-secondary uppercase mb-1">Credentials Accessible</p>
+                    <p className={`text-sm font-semibold ${
+                      kmsStatus.credentials_accessible ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {kmsStatus.credentials_accessible ? '✓ Accessible' : '✗ Not Accessible'}
+                    </p>
+                  </div>
+                </div>
+                
+                
+                {kmsStatus.client_id_secret_name && (
+                  <div className="mt-4 p-3 bg-starlink-light rounded border border-starlink-border">
+                    <p className="text-xs text-starlink-text-secondary uppercase mb-1">Current Client ID Secret</p>
+                    <p className="text-sm text-starlink-text font-mono">{kmsStatus.client_id_secret_name}</p>
+                  </div>
+                )}
+                {kmsStatus.client_secret_secret_name && (
+                  <div className="mt-2 p-3 bg-starlink-light rounded border border-starlink-border">
+                    <p className="text-xs text-starlink-text-secondary uppercase mb-1">Current Client Secret</p>
+                    <p className="text-sm text-starlink-text font-mono">{kmsStatus.client_secret_secret_name}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            
+
           </div>
         )}
       </div>

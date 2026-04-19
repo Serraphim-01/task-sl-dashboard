@@ -148,8 +148,8 @@ try:
         print("Creating initial admin user...")
         
         # Generate Key Vault secret names for admin (these won't be used but are required)
-        admin_client_id_secret = "admin-starlink-client-id"
-        admin_client_secret_secret = "admin-starlink-client-secret"
+        admin_client_id_secret = "starlink-provider-client-id"
+        admin_client_secret_secret = "starlink-provider-client-secret"
         
         # Hash the password
         hashed_pwd = hash_password("Admin@123456")  # Change this password!

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { listUsers, deleteUser, createCustomer, getWebSocketToken } from '../services/api.ts';
+import { listUsers, deleteUser, createCustomer, getWebSocketToken, getServiceLines } from '../services/api.ts';
 import { useWebSocket } from '../hooks/useWebSocket.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { FaTrash } from 'react-icons/fa';
@@ -27,10 +27,13 @@ const CustomerManagement: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
     enterprise_name: '',
-    starlink_client_id: '',
-    starlink_client_secret: '',
+    service_line_number: '',
   });
   const [creating, setCreating] = useState(false);
+  const [serviceLines, setServiceLines] = useState<any[]>([]);
+  const [loadingServiceLines, setLoadingServiceLines] = useState(false);
+  const [showServiceLineDropdown, setShowServiceLineDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // WebSocket state
   const [wsToken, setWsToken] = useState<string | null>(null);
@@ -146,12 +149,68 @@ const CustomerManagement: React.FC = () => {
     }
   };
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
+
+  const fetchServiceLines = async () => {
+    setLoadingServiceLines(true);
+    try {
+      // Fetch all service lines without pagination limit
+      const response = await getServiceLines({
+        page: 0,
+        order_by_created_date_descending: true
+      });
+      
+      console.log('[DEBUG] Full Service lines API response:', response);
+      console.log('[DEBUG] response.content:', response.content);
+      console.log('[DEBUG] response.content?.results:', response.content?.results);
+      
+      // Extract results from the paginated response
+      const serviceLineData = response.content?.results || [];
+      console.log('[DEBUG] Final service lines data:', serviceLineData);
+      console.log('[DEBUG] Total count:', response.content?.totalCount);
+      
+      setServiceLines(serviceLineData);
+    } catch (err: any) {
+      console.error('Failed to fetch service lines:', err);
+      console.error('Error response:', err.response);
+    } finally {
+      setLoadingServiceLines(false);
+    }
+  };
+
+  const handleOpenModal = () => {
+    setShowModal(true);
+    fetchServiceLines();
+  };
+
+  const handleServiceLineSelect = (serviceLineNumber: string) => {
+    setFormData({
+      ...formData,
+      service_line_number: serviceLineNumber
+    });
+    setShowServiceLineDropdown(false);
+    setSearchTerm('');
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-dropdown-container]')) {
+        setShowServiceLineDropdown(false);
+      }
+    };
+
+    if (showServiceLineDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showServiceLineDropdown]);
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,8 +224,7 @@ const CustomerManagement: React.FC = () => {
       setFormData({
         email: '',
         enterprise_name: '',
-        starlink_client_id: '',
-        starlink_client_secret: '',
+        service_line_number: '',
       });
       setShowModal(false);
       // Refresh the customer list
@@ -200,7 +258,7 @@ const CustomerManagement: React.FC = () => {
             </span>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenModal}
             className="btn-primary py-2 px-4 text-sm flex-1 sm:flex-none"
           >
             Create Customer
@@ -360,37 +418,123 @@ const CustomerManagement: React.FC = () => {
                 />
               </div>
 
-              <div>
+              <div className="relative" data-dropdown-container>
                 <label className="block mb-1.5 md:mb-2 font-semibold text-starlink-text text-sm md:text-base">
-                  Starlink Client ID:
+                  Service Line:
                 </label>
-                <input
-                  type="text"
-                  name="starlink_client_id"
-                  value={formData.starlink_client_id}
-                  onChange={handleFormChange}
-                  required
-                  className="input-field text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1.5 md:mb-2 font-semibold text-starlink-text text-sm md:text-base">
-                  Starlink Client Secret:
-                </label>
-                <input
-                  type="password"
-                  name="starlink_client_secret"
-                  value={formData.starlink_client_secret}
-                  onChange={handleFormChange}
-                  required
-                  className="input-field text-sm"
-                />
+                <div className="relative">
+                  <div
+                    className="input-field text-sm cursor-pointer flex items-center justify-between"
+                    onClick={() => setShowServiceLineDropdown(!showServiceLineDropdown)}
+                  >
+                    <span className="truncate">
+                      {formData.service_line_number ? (
+                        (() => {
+                          const selectedServiceLine = serviceLines.find(sl => sl.serviceLineNumber === formData.service_line_number);
+                          if (selectedServiceLine) {
+                            return selectedServiceLine.nickname 
+                              ? `${selectedServiceLine.nickname} — ${selectedServiceLine.serviceLineNumber}`
+                              : selectedServiceLine.serviceLineNumber;
+                          }
+                          return formData.service_line_number;
+                        })()
+                      ) : (
+                        <span className="text-starlink-text-muted">
+                          {loadingServiceLines ? 'Loading service lines...' : 'Select a service line...'}
+                        </span>
+                      )}
+                    </span>
+                    <svg className="w-4 h-4 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                  
+                  {showServiceLineDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-starlink-dark border border-starlink-border rounded shadow-xl max-h-60 overflow-y-auto">
+                      {/* Debug info */}
+                      <div className="p-2 bg-yellow-900/30 border-b border-starlink-border text-xs text-yellow-200">
+                        Loading: {loadingServiceLines ? 'Yes' : 'No'}, Count: {serviceLines.length}
+                      </div>
+                      
+                      {/* Search input */}
+                      <div className="p-2 border-b border-starlink-border sticky top-0 bg-starlink-dark">
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Search service lines..."
+                          className="w-full px-2 py-1.5 bg-starlink-light border border-starlink-border rounded text-sm text-starlink-text placeholder-starlink-text-muted focus:outline-none focus:border-starlink-accent"
+                          autoFocus
+                        />
+                      </div>
+                      
+                      {/* Service lines list */}
+                      {loadingServiceLines ? (
+                        <div className="p-4 text-center text-sm text-starlink-text-secondary">
+                          Loading...
+                        </div>
+                      ) : serviceLines.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-starlink-text-secondary">
+                          No service lines available. Please create a service line first.
+                        </div>
+                      ) : (
+                        <div>
+                          {serviceLines
+                            .filter(sl => 
+                              sl.serviceLineNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              (sl.nickname && sl.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
+                            )
+                            .map((serviceLine) => (
+                              <div
+                                key={serviceLine.serviceLineNumber}
+                                onClick={() => handleServiceLineSelect(serviceLine.serviceLineNumber)}
+                                className={`px-3 py-2.5 cursor-pointer hover:bg-starlink-light transition-colors ${
+                                  formData.service_line_number === serviceLine.serviceLineNumber 
+                                    ? 'bg-starlink-accent/20 border-l-2 border-starlink-accent' 
+                                    : 'border-l-2 border-transparent'
+                                }`}
+                              >
+                                {serviceLine.nickname ? (
+                                  <div className="flex flex-col">
+                                    <span className="text-sm text-starlink-text font-medium truncate">
+                                      {serviceLine.nickname}
+                                    </span>
+                                    <span className="text-xs text-starlink-text-secondary truncate">
+                                      {serviceLine.serviceLineNumber}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-starlink-text font-mono truncate block">
+                                    {serviceLine.serviceLineNumber}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          
+                          {serviceLines.filter(sl => 
+                            sl.serviceLineNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            (sl.nickname && sl.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
+                          ).length === 0 && searchTerm && (
+                            <div className="p-4 text-center text-sm text-starlink-text-secondary">
+                              No service lines match "{searchTerm}"
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {serviceLines.length > 0 && (
+                  <p className="text-xs text-starlink-text-secondary mt-1">
+                    {serviceLines.length} service line{serviceLines.length !== 1 ? 's' : ''} available
+                  </p>
+                )}
               </div>
 
               <div className="bg-gray-700/30 border border-gray-600 p-3 rounded">
                 <p className="text-gray-200 text-xs md:text-sm">
-                  <strong>Note:</strong> No password is required. The customer will set their password on first login.
+                  <strong>Note:</strong> The customer will be associated with the specified service line. 
+                  Starlink credentials will be automatically linked. Customer will set their password on first login.
                 </p>
               </div>
 

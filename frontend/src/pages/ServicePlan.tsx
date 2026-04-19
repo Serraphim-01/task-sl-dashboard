@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getServiceLine, getBillingPartialPeriods, getUserTerminals, getUserTerminalDetails, getRouterDetails, getRouterConfig, getDefaultRouterConfig, getProducts, getServiceLineTelemetry, getAddresses, addAddressToServiceLine } from '../services/api.ts';
 import { FaEye, FaStream, FaMapMarkerAlt, FaPlus, FaTimes } from 'react-icons/fa';
@@ -209,11 +209,22 @@ const ServicePlan: React.FC = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [addressLoading, setAddressLoading] = useState(false);
+  
+  // Telemetry streaming state
+  const telemetryIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (serviceLineNumber) {
       fetchServiceLineDetails();
     }
+    
+    // Cleanup on unmount
+    return () => {
+      if (telemetryIntervalRef.current) {
+        clearInterval(telemetryIntervalRef.current);
+        telemetryIntervalRef.current = null;
+      }
+    };
   }, [serviceLineNumber]);
   
   const fetchAddresses = async () => {
@@ -360,6 +371,65 @@ const ServicePlan: React.FC = () => {
         console.log(`[DEBUG] Filtered telemetry for ${Object.keys(updates).length} devices (routers + user terminals) belonging to this service line`);
         setTelemetryData(updates);
       }
+      
+      // Set up real-time polling every 5 seconds
+      if (telemetryIntervalRef.current) {
+        clearInterval(telemetryIntervalRef.current);
+      }
+      telemetryIntervalRef.current = setInterval(async () => {
+        try {
+          const response = await getServiceLineTelemetry(serviceLineNumber!);
+          
+          if (response?.data?.values && response?.data?.columnNamesByDeviceType) {
+            const { values, columnNamesByDeviceType } = response.data;
+            const newUpdates: {[key: string]: DeviceTelemetryData} = {};
+            
+            for (const valueArray of values) {
+              if (!Array.isArray(valueArray) || valueArray.length === 0) continue;
+              
+              const deviceType = valueArray[0];
+              const columnNames = columnNamesByDeviceType[deviceType];
+              
+              if (!columnNames) continue;
+              
+              const record: ParsedTelemetryRecord = {};
+              let deviceId = '';
+              
+              for (let i = 0; i < columnNames.length; i++) {
+                const columnName = columnNames[i];
+                const value = valueArray[i];
+                
+                if (columnName === 'DeviceType') {
+                  record.deviceType = getDeviceTypeLabel(value);
+                } else if (columnName === 'UtcTimestampNs') {
+                  record.timestampNs = value;
+                  record.timestamp = nanosecondsToISOString(value);
+                } else if (columnName === 'DeviceId') {
+                  record.deviceId = value;
+                  deviceId = value;
+                } else {
+                  record[columnName] = value;
+                }
+              }
+              
+              // Only include devices that belong to this service line
+              if (deviceId && deviceIds.has(deviceId)) {
+                newUpdates[deviceId] = {
+                  deviceId,
+                  deviceType: record.deviceType || 'Unknown',
+                  lastUpdate: record.timestamp,
+                  latestRecord: record
+                };
+              }
+            }
+            
+            setTelemetryData(newUpdates);
+          }
+        } catch (err) {
+          console.error('Failed to fetch telemetry update:', err);
+        }
+      }, 5000); // Update every 5 seconds
+      
     } catch (err: any) {
       console.error('Failed to fetch telemetry:', err);
       setError(err.response?.data?.detail || 'Failed to fetch telemetry');

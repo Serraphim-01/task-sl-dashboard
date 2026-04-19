@@ -442,6 +442,63 @@ async def update_network_config(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==================== USER TERMINAL & ROUTER ENDPOINTS ====================
+
+@router.get("/starlink/user-terminals/{user_terminal_id}")
+async def get_user_terminal_details(
+    user_terminal_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get detailed information for a specific user terminal.
+    Includes L2VPN configuration (l2VpnCircuits array) and all terminal details.
+    """
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_user_terminal_details(user_terminal_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user terminal details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch terminal details: {str(e)}")
+
+
+@router.get("/starlink/routers/{router_id}")
+async def get_router_details(
+    router_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get detailed information for a specific router.
+    """
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_router_details(router_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching router details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch router details: {str(e)}")
+
+
+@router.get("/starlink/routers/configs/{config_id}")
+async def get_router_config(
+    config_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get router configuration.
+    """
+    try:
+        service = await get_starlink_service(current_user)
+        return await service.get_router_config(config_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching router config: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch router config: {str(e)}")
+
+
 # ==================== ALERTS & NOTIFICATIONS ENDPOINTS ====================
 
 @router.get("/starlink/alerts")

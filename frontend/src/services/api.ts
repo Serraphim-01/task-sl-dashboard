@@ -22,12 +22,11 @@ export const loginCustomer = async (email: string, password: string) => {
   return response.data;
 };
 
-// Create customer (admin only) - No password required, user will set on first login
+// Create customer (admin only) - Requires service line number instead of credentials
 export const createCustomer = async (customerData: {
   email: string;
   enterprise_name: string;
-  starlink_client_id: string;
-  starlink_client_secret: string;
+  service_line_number: string;
 }) => {
   const response = await api.post('/admin/customers', customerData);
   return response.data;
@@ -71,12 +70,6 @@ export const getCustomerAccount = async () => {
   return response.data;
 };
 
-// Get customer Starlink telemetry
-export const getCustomerTelemetry = async () => {
-  const response = await api.get('/customer/starlink/telemetry');
-  return response.data;
-};
-
 // Logout
 export const logout = async () => {
   // Backend logout endpoint if exists, else just clear token
@@ -102,6 +95,55 @@ export const listUsers = async () => {
 // Delete user (admin only)
 export const deleteUser = async (userId: number) => {
   const response = await api.delete(`/admin/users/${userId}`);
+  return response.data;
+};
+
+// ==================== CUSTOMER API ENDPOINTS (Customer Portal) ====================
+
+// Customer Service Line endpoints (no admin required)
+export const getCustomerServiceLine = async () => {
+  const response = await api.get('/customer/service-line');
+  return response.data;
+};
+
+export const getCustomerCurrentPlan = async () => {
+  const response = await api.get('/customer/service-line/current-plan');
+  return response.data;
+};
+
+export const getCustomerUserTerminals = async () => {
+  const response = await api.get('/customer/service-line/user-terminals');
+  return response.data;
+};
+
+export const getCustomerTelemetry = async () => {
+  const response = await api.get('/customer/service-line/telemetry');
+  return response.data;
+};
+
+export const getCustomerProducts = async () => {
+  const response = await api.get('/customer/products');
+  return response.data;
+};
+
+export const getCustomerAddress = async (addressReferenceId: string) => {
+  const response = await api.get(`/customer/addresses/${addressReferenceId}`);
+  return response.data;
+};
+
+// Customer User Terminal and Router endpoints (no admin required)
+export const getCustomerUserTerminalDetails = async (userTerminalId: string) => {
+  const response = await api.get(`/customer/starlink/user-terminals/${userTerminalId}`);
+  return response.data;
+};
+
+export const getCustomerRouterDetails = async (routerId: string) => {
+  const response = await api.get(`/customer/starlink/routers/${routerId}`);
+  return response.data;
+};
+
+export const getCustomerRouterConfig = async (configId: string) => {
+  const response = await api.get(`/customer/starlink/routers/configs/${configId}`);
   return response.data;
 };
 
@@ -293,6 +335,33 @@ export const addAddressToServiceLine = async (serviceLineNumber: string, address
 
 export const removeAddressFromServiceLine = async (serviceLineNumber: string, addressReferenceId: string) => {
   const response = await api.delete(`/admin/service-lines/${serviceLineNumber}/addresses/${addressReferenceId}`);
+  return response.data;
+};
+
+// ==================== KMS/AZURE KEY VAULT MANAGEMENT ====================
+
+export const getKMSStatus = async () => {
+  const response = await api.get('/admin/settings/kms/status');
+  return response.data;
+};
+
+export const listKMSSecrets = async () => {
+  const response = await api.get('/admin/settings/kms/secrets');
+  return response.data;
+};
+
+export const updateStarlinkCredentials = async (data: {
+  client_id_secret_name: string;
+  client_id_value: string;
+  client_secret_secret_name: string;
+  client_secret_value: string;
+}) => {
+  const response = await api.post('/admin/settings/kms/credentials', data);
+  return response.data;
+};
+
+export const deleteKMSSecret = async (secretName: string) => {
+  const response = await api.delete(`/admin/settings/kms/secrets/${secretName}`);
   return response.data;
 };
 

@@ -13,8 +13,9 @@ def register_user_model(Base):
         id = Column(Integer, primary_key=True, index=True)
         email = Column(String(255), unique=True, index=True, nullable=False)
         hashed_password = Column(String(255), nullable=True)  # Made nullable for unactivated accounts
-        kms_client_id_secret_name = Column(String(255), nullable=False)
-        kms_client_secret_secret_name = Column(String(255), nullable=False)
+        kms_client_id_secret_name = Column(String(255), nullable=True)  # Made nullable for service-line-based auth
+        kms_client_secret_secret_name = Column(String(255), nullable=True)  # Made nullable for service-line-based auth
+        service_line_number = Column(String(255), nullable=True)  # Service line associated with this customer
         enterprise_name = Column(String(255), nullable=False)
         is_admin = Column(Boolean, default=False)
         is_active = Column(Boolean, default=False)  # Track if user has activated their account (set password)

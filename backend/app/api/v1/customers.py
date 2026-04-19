@@ -4,7 +4,7 @@ from app.database import User
 from app.utils.password import hash_password
 from app.services.kms_service import get_kms_service
 from app.database import SessionLocal
-from app.api.v1.auth import get_current_admin_user
+from app.api.v1.auth import get_current_admin_user, get_current_user
 import re
 import logging
 import json
@@ -18,8 +18,7 @@ router = APIRouter()
 class CreateCustomerRequest(BaseModel):
     email: str
     enterprise_name: str
-    starlink_client_id: str
-    starlink_client_secret: str
+    service_line_number: str  # Service line to associate with customer
 
 
 
@@ -64,7 +63,7 @@ async def create_customer(
 ):
     """
     Admin endpoint to create a new customer.
-    Stores Starlink credentials in Azure Key Vault and user info in database.
+    Associates customer with a service line and uses admin's Starlink credentials.
     Customer will be created with Unactivated status and must set password on first login.
     """
     db = SessionLocal()
@@ -79,29 +78,36 @@ async def create_customer(
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already registered")
         
-        # Generate unique secret names for Key Vault
-        client_id_secret_name = f"customer-{request.email.replace('@', '-').replace('.', '-')}-client-id"
-        client_secret_secret_name = f"customer-{request.email.replace('@', '-').replace('.', '-')}-client-secret"
+        # Verify admin has Starlink credentials
+        if not current_admin.kms_client_id_secret_name or not current_admin.kms_client_secret_secret_name:
+            raise HTTPException(
+                status_code=500, 
+                detail="Admin account does not have Starlink credentials configured. Please configure admin credentials first."
+            )
         
-        # Store credentials in Azure Key Vault
+        # Use admin's Starlink credentials (shared across all customers)
+        # The service_line_number is just for association, credentials are shared
         kms = await get_kms_service()
         
-        success_id = await kms.set_secret(client_id_secret_name, request.starlink_client_id)
-        if not success_id:
-            raise HTTPException(status_code=500, detail="Failed to store Client ID in Key Vault")
+        # Verify admin's credentials exist in Key Vault
+        admin_client_id = await kms.get_secret(current_admin.kms_client_id_secret_name)
+        admin_client_secret = await kms.get_secret(current_admin.kms_client_secret_secret_name)
         
-        success_secret = await kms.set_secret(client_secret_secret_name, request.starlink_client_secret)
-        if not success_secret:
-            raise HTTPException(status_code=500, detail="Failed to store Client Secret in Key Vault")
+        if not admin_client_id or not admin_client_secret:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to retrieve admin Starlink credentials from Key Vault"
+            )
         
-        logger.info(f"Successfully stored credentials in Key Vault for customer: {request.email}")
+        logger.info(f"Creating customer with admin's Starlink credentials for service line: {request.service_line_number}")
         
         # Create user record in database (without password - unactivated)
         new_user = User(
             email=request.email,
             hashed_password=None,  # No password yet - user will set on first login
-            kms_client_id_secret_name=client_id_secret_name,
-            kms_client_secret_secret_name=client_secret_secret_name,
+            kms_client_id_secret_name=current_admin.kms_client_id_secret_name,  # Use admin's credential
+            kms_client_secret_secret_name=current_admin.kms_client_secret_secret_name,  # Use admin's credential
+            service_line_number=request.service_line_number,  # Store service line
             enterprise_name=request.enterprise_name,
             is_admin=False,
             is_active=False,  # Inactive until first login
@@ -112,7 +118,7 @@ async def create_customer(
         db.commit()
         db.refresh(new_user)
         
-        logger.info(f"Created new customer user: {request.email} (ID: {new_user.id}) - Status: Unactivated")
+        logger.info(f"Created new customer user: {request.email} (ID: {new_user.id}) - Service Line: {request.service_line_number} - Status: Unactivated")
         
         return CreateCustomerResponse(
             message="Customer created successfully. User must set password on first login.",
@@ -745,6 +751,457 @@ async def get_default_router_config(
         raise HTTPException(status_code=500, detail=f"Failed to fetch default router config: {str(e)}")
 
 
+@router.get("/admin/settings/kms/secrets")
+async def list_kms_secrets(
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    List all secrets in Azure Key Vault (names only, not values).
+    Admin can see what credentials are available to use.
+    """
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        kms = await get_kms_service()
+        secrets = await kms.list_secrets()
+        
+        if secrets is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve secrets from Key Vault")
+        
+        return {
+            "secrets": secrets,
+            "total": len(secrets)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to list KMS secrets: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list secrets: {str(e)}")
+
+
+@router.post("/admin/settings/kms/credentials")
+async def update_admin_starlink_credentials(
+    request: dict,
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Update admin's Starlink credentials in Azure Key Vault.
+    Creates new secrets with specified names and values.
+    """
+    from app.services.kms_service import get_kms_service
+    from sqlalchemy import text
+    
+    # Validate request
+    client_id_secret_name = request.get('client_id_secret_name')
+    client_id_value = request.get('client_id_value')
+    client_secret_secret_name = request.get('client_secret_secret_name')
+    client_secret_value = request.get('client_secret_value')
+    
+    if not all([client_id_secret_name, client_id_value, client_secret_secret_name, client_secret_value]):
+        raise HTTPException(status_code=400, detail="All fields are required")
+    
+    db = SessionLocal()
+    try:
+        kms = await get_kms_service()
+        
+        # Store secrets in Key Vault
+        success_id = await kms.set_secret(client_id_secret_name, client_id_value)
+        success_secret = await kms.set_secret(client_secret_secret_name, client_secret_value)
+        
+        if not success_id or not success_secret:
+            raise HTTPException(status_code=500, detail="Failed to store credentials in Key Vault")
+        
+        # Update admin's record to reference these secrets
+        current_admin.kms_client_id_secret_name = client_id_secret_name
+        current_admin.kms_client_secret_secret_name = client_secret_secret_name
+        
+        db.commit()
+        db.refresh(current_admin)
+        
+        logger.info(f"Updated Starlink credentials for admin: {current_admin.email}")
+        
+        return {
+            "message": "Starlink credentials updated successfully",
+            "client_id_secret_name": client_id_secret_name,
+            "client_secret_secret_name": client_secret_secret_name
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to update credentials: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update credentials: {str(e)}")
+    finally:
+        db.close()
+
+
+@router.post("/admin/settings/kms/update-current-credentials")
+async def update_current_credentials(
+    request: dict,
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Update admin's credential references to use existing Key Vault secrets.
+    Does NOT create new secrets - just updates the admin's references.
+    """
+    from sqlalchemy import text
+    
+    # Validate request
+    client_id_secret_name = request.get('client_id_secret_name')
+    client_secret_secret_name = request.get('client_secret_secret_name')
+    
+    logger.info(f"Updating credentials for admin {current_admin.email}: ID={client_id_secret_name}, Secret={client_secret_secret_name}")
+    
+    if not all([client_id_secret_name, client_secret_secret_name]):
+        raise HTTPException(status_code=400, detail="Both secret names are required")
+    
+    db = SessionLocal()
+    try:
+        # Verify the secrets exist in Key Vault
+        kms = await get_kms_service()
+        
+        logger.info(f"Verifying secret: {client_id_secret_name}")
+        client_id = await kms.get_secret(client_id_secret_name)
+        logger.info(f"Secret {client_id_secret_name} found: {client_id is not None}")
+        
+        logger.info(f"Verifying secret: {client_secret_secret_name}")
+        client_secret = await kms.get_secret(client_secret_secret_name)
+        logger.info(f"Secret {client_secret_secret_name} found: {client_secret is not None}")
+        
+        if client_id is None or client_secret is None:
+            logger.error(f"Secrets not found - ID: {client_id_secret_name}, Secret: {client_secret_secret_name}")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"One or both secrets not found in Key Vault. Please create them first using 'Add New Starlink Credentials'"
+            )
+        
+        # Update admin's record to reference these existing secrets
+        current_admin.kms_client_id_secret_name = client_id_secret_name
+        current_admin.kms_client_secret_secret_name = client_secret_secret_name
+        
+        db.commit()
+        db.refresh(current_admin)
+        
+        logger.info(f"Updated admin credential references for: {current_admin.email}")
+        
+        return {
+            "message": "Current credentials updated successfully",
+            "client_id_secret_name": client_id_secret_name,
+            "client_secret_secret_name": client_secret_secret_name
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to update credentials: {str(e)}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to update credentials: {str(e)}")
+    finally:
+        db.close()
+
+
+@router.delete("/admin/settings/kms/secrets/{secret_name}")
+async def delete_kms_secret(
+    secret_name: str,
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Delete a secret from Azure Key Vault (soft delete).
+    Warning: This cannot be undone easily.
+    """
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        kms = await get_kms_service()
+        success = await kms.delete_secret(secret_name)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to delete secret")
+        
+        return {
+            "message": f"Secret '{secret_name}' deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete secret: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete secret: {str(e)}")
+
+
+@router.get("/admin/settings/kms/status")
+async def get_kms_status(
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """
+    Get KMS configuration status and current admin's credential references.
+    """
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        kms = await get_kms_service()
+        
+        # Check if admin has credentials configured
+        has_credentials = bool(
+            current_admin.kms_client_id_secret_name and 
+            current_admin.kms_client_secret_secret_name
+        )
+        
+        # Test if credentials are accessible
+        credentials_accessible = False
+        if has_credentials:
+            try:
+                client_id = await kms.get_secret(current_admin.kms_client_id_secret_name)
+                client_secret = await kms.get_secret(current_admin.kms_client_secret_secret_name)
+                credentials_accessible = bool(client_id and client_secret)
+            except:
+                credentials_accessible = False
+        
+        return {
+            "vault_url": kms.vault_url,
+            "vault_connected": bool(kms.vault_url),
+            "has_credentials_configured": has_credentials,
+            "client_id_secret_name": current_admin.kms_client_id_secret_name,
+            "client_secret_secret_name": current_admin.kms_client_secret_secret_name,
+            "credentials_accessible": credentials_accessible
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get KMS status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get KMS status: {str(e)}")
+
+
+@router.get("/customer/service-line/user-terminals")
+async def get_customer_user_terminals(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get user terminals for their service line.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    # Check if user has a service line
+    if not current_user.service_line_number:
+        raise HTTPException(status_code=404, detail="No service line associated with your account")
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Use the user's own credentials
+        if current_user.kms_client_id_secret_name and current_user.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_user_terminals(current_user.service_line_number)
+                
+                return response
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user terminals: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user terminals: {str(e)}")
+
+
+@router.get("/customer/service-line/telemetry")
+async def get_customer_service_line_telemetry(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get telemetry for devices in their service line.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    # Check if user has a service line
+    if not current_user.service_line_number:
+        raise HTTPException(status_code=404, detail="No service line associated with your account")
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Use the user's own credentials
+        if current_user.kms_client_id_secret_name and current_user.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                # Fetch telemetry stream with small batch for service line
+                response = await service.get_telemetry_stream(batch_size=100, max_linger_ms=5000)
+                return response
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching service line telemetry: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch service line telemetry: {str(e)}")
+
+
+@router.get("/customer/service-line/current-plan")
+async def get_customer_current_plan(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get current plan details for their service line.
+    Returns servicePlan, dataBlocks, and pricing information.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    # Check if user has a service line
+    if not current_user.service_line_number:
+        raise HTTPException(status_code=404, detail="No service line associated with your account")
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Use the user's own credentials
+        if current_user.kms_client_id_secret_name and current_user.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_current_plan(current_user.service_line_number)
+                
+                return response
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching current plan: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch current plan: {str(e)}")
+
+
+@router.get("/customer/service-line")
+async def get_customer_service_line(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get their own service line details.
+    Customers can only access their own service line data.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    # Check if user has a service line
+    if not current_user.service_line_number:
+        raise HTTPException(status_code=404, detail="No service line associated with your account")
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Use the user's own credentials
+        if current_user.kms_client_id_secret_name and current_user.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_service_line(current_user.service_line_number)
+                
+                return response
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching service line details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch service line details: {str(e)}")
+
+
+@router.get("/customer/products")
+async def get_customer_products(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get all available products from Starlink API.
+    Customers can view products for reference.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Use the user's own credentials
+        if current_user.kms_client_id_secret_name and current_user.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_products()
+                
+                return response
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching products: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch products: {str(e)}")
+
+
+@router.get("/customer/addresses/{address_reference_id}")
+async def get_customer_address(
+    address_reference_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Customer endpoint to get a specific address by reference ID from Starlink API.
+    Customers can only access addresses.
+    """
+    from app.services.starlink_v2_service import StarlinkV2Service
+    from app.services.kms_service import get_kms_service
+    
+    try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Use the user's own credentials
+        if current_user.kms_client_id_secret_name and current_user.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_user.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_user.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_address(address_reference_id)
+                
+                return response
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching address: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch address: {str(e)}")
+
+
 @router.get("/admin/products")
 async def get_products(
     current_admin: User = Depends(get_current_admin_user)
@@ -1062,6 +1519,44 @@ async def get_tls_configs(
     from app.services.kms_service import get_kms_service
     
     try:
+        # Get KMS service to fetch credentials
+        kms = await get_kms_service()
+        
+        # Get admin's own credentials if they have them
+        if current_admin.kms_client_id_secret_name and current_admin.kms_client_secret_secret_name:
+            client_id = await kms.get_secret(current_admin.kms_client_id_secret_name)
+            client_secret = await kms.get_secret(current_admin.kms_client_secret_secret_name)
+            
+            if client_id and client_secret:
+                service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                response = await service.get_tls_configs()
+                
+                return response
+        
+        # If admin doesn't have credentials, try first customer
+        db = SessionLocal()
+        try:
+            first_customer = db.query(User).filter(User.is_admin == False).first()
+            if first_customer:
+                client_id = await kms.get_secret(first_customer.kms_client_id_secret_name)
+                client_secret = await kms.get_secret(first_customer.kms_client_secret_secret_name)
+                
+                if client_id and client_secret:
+                    service = StarlinkV2Service(client_id=client_id, client_secret=client_secret)
+                    response = await service.get_tls_configs()
+                    
+                    return response
+        finally:
+            db.close()
+        
+        raise HTTPException(status_code=500, detail="No Starlink credentials available")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching TLS configs: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch TLS configs: {str(e)}")
+
         # Get KMS service to fetch credentials
         kms = await get_kms_service()
         
