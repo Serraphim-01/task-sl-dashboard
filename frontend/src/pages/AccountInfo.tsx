@@ -167,7 +167,10 @@ const AccountInfo: React.FC = () => {
           }
         }
         
-        setTelemetryData(updates);
+        // Only update if we got new data, otherwise keep existing data
+        if (Object.keys(updates).length > 0) {
+          setTelemetryData(updates);
+        }
       }
       
       // Set up real-time polling every 5 seconds
@@ -220,15 +223,20 @@ const AccountInfo: React.FC = () => {
               }
             }
             
-            setTelemetryData(newUpdates);
+            // Only update if we got new data, otherwise keep existing data
+            if (Object.keys(newUpdates).length > 0) {
+              setTelemetryData(newUpdates);
+            }
           }
         } catch (err) {
           console.error('Failed to fetch telemetry update:', err);
+          // Keep existing data on error - don't clear it
         }
       }, 5000); // Update every 5 seconds
       
     } catch (err) {
       console.error('Failed to fetch telemetry:', err);
+      // Keep existing data on error - don't clear it
     }
   };
 
@@ -397,6 +405,86 @@ const AccountInfo: React.FC = () => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Device Telemetry */}
+          <div className="card p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
+              <FaStream />
+              Device Telemetry
+            </h2>
+            <p className="text-xs md:text-sm text-starlink-text-secondary mb-4">
+              Real-time telemetry data for your devices (updates every 5 seconds)
+            </p>
+            
+            {Object.keys(telemetryData).length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(telemetryData).map(([deviceId, device]: [string, any]) => (
+                  <div key={deviceId} className="p-4 bg-starlink-light rounded border border-starlink-border hover:border-starlink-accent/50 transition-colors">
+                    {/* Device Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-starlink-text truncate">
+                          {device.deviceType}
+                        </h3>
+                        <p className="text-[10px] text-starlink-text-secondary font-mono truncate mt-1">
+                          {formatDeviceId(deviceId)}
+                        </p>
+                      </div>
+                      {device.lastUpdate && (
+                        <div className="text-right">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase">Last Update</p>
+                          <p className="text-xs text-starlink-text">{formatDate(device.lastUpdate)}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Device Details */}
+                    <div className="space-y-2">
+                      {/* Display key telemetry metrics */}
+                      {device.latestRecord && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-starlink-text-secondary uppercase">Key Metrics</p>
+                          <div className="p-2 bg-starlink-gray rounded text-xs text-starlink-text font-mono">
+                            {Object.entries(device.latestRecord)
+                              .filter(([key, value]) => 
+                                !['deviceType', 'deviceId', 'timestamp', 'timestampNs'].includes(key) &&
+                                typeof value === 'number' &&
+                                value !== 0
+                              )
+                              .slice(0, 5)
+                              .map(([key, value]) => (
+                                <div key={key} className="flex justify-between">
+                                  <span className="text-starlink-text-secondary">{key}:</span>
+                                  <span className="text-starlink-text font-semibold">
+                                    {typeof value === 'number' ? value.toFixed(2) : String(value)}
+                                  </span>
+                                </div>
+                              ))
+                            }
+                            {Object.entries(device.latestRecord)
+                              .filter(([key, value]) => 
+                                !['deviceType', 'deviceId', 'timestamp', 'timestampNs'].includes(key) &&
+                                typeof value === 'number' &&
+                                value !== 0
+                              )
+                              .length === 0 && (
+                              <p className="text-starlink-text-secondary text-center py-2">No metrics available</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
+                <p className="text-sm md:text-base text-starlink-text-secondary">
+                  Waiting for telemetry data...
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Service Plan Details */}
@@ -1125,78 +1213,6 @@ const AccountInfo: React.FC = () => {
               )}
             </div>
           )}
-
-          {/* Device Telemetry */}
-          <div className="card p-4 md:p-6">
-            <h2 className="text-lg md:text-xl font-semibold text-starlink-text mb-4 flex items-center gap-2">
-              <FaStream />
-              Device Telemetry
-            </h2>
-            <p className="text-xs md:text-sm text-starlink-text-secondary mb-4">
-              Real-time telemetry data for your devices (updates every 5 seconds)
-            </p>
-            
-            {Object.keys(telemetryData).length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(telemetryData).map(([deviceId, device]: [string, any]) => (
-                  <div key={deviceId} className="p-4 bg-starlink-light rounded border border-starlink-border hover:border-starlink-accent/50 transition-colors">
-                    {/* Device Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-sm font-semibold text-starlink-text truncate">
-                          {device.deviceType}
-                        </h3>
-                        <p className="text-[10px] text-starlink-text-secondary font-mono truncate mt-1">
-                          {formatDeviceId(deviceId)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Device Details */}
-                    <div className="space-y-2">
-                      {device.lastUpdate && (
-                        <div>
-                          <p className="text-[10px] text-starlink-text-secondary uppercase mb-1">Last Update</p>
-                          <p className="text-xs text-starlink-text">{formatDate(device.lastUpdate)}</p>
-                        </div>
-                      )}
-
-                      {/* Display key telemetry metrics */}
-                      {device.latestRecord && (
-                        <div className="space-y-1">
-                          <p className="text-[10px] text-starlink-text-secondary uppercase">Key Metrics</p>
-                          <div className="p-2 bg-starlink-gray rounded text-xs text-starlink-text font-mono">
-                            {Object.entries(device.latestRecord)
-                              .filter(([key, value]) => 
-                                !['deviceType', 'deviceId', 'timestamp', 'timestampNs'].includes(key) &&
-                                typeof value === 'number' &&
-                                value !== 0
-                              )
-                              .slice(0, 5)
-                              .map(([key, value]) => (
-                                <div key={key} className="flex justify-between">
-                                  <span className="text-starlink-text-secondary">{key}:</span>
-                                  <span className="text-starlink-text font-semibold">
-                                    {typeof value === 'number' ? value.toFixed(2) : String(value)}
-                                  </span>
-                                </div>
-                              ))
-                            }
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-6 bg-starlink-light rounded border border-starlink-border text-center">
-                <p className="text-sm md:text-base text-starlink-text-secondary">
-                  No telemetry data available. Make sure your devices are connected.
-                </p>
-              </div>
-            )}
-          </div>
         </div>
       ) : (
         <div className="card text-center py-6">

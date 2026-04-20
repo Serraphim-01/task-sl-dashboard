@@ -42,6 +42,16 @@ export const changePassword = async (passwordData: {
   return response.data;
 };
 
+// Set initial password (for first-time login without authentication)
+export const setInitialPassword = async (passwordData: {
+  email: string;
+  new_password: string;
+  confirm_password: string;
+}) => {
+  const response = await api.post('/auth/set-initial-password', passwordData);
+  return response.data;
+};
+
 // Check forgot password status (public endpoint)
 export const checkForgotPasswordStatus = async (email: string) => {
   const response = await api.post('/auth/forgot-password/status', { email });

@@ -355,6 +355,70 @@ async def change_password(
         db.close()
 
 
+class SetInitialPasswordRequest(BaseModel):
+    email: str
+    new_password: str
+    confirm_password: str
+
+
+@router.post("/set-initial-password", response_model=ChangePasswordResponse)
+async def set_initial_password(request: SetInitialPasswordRequest):
+    """
+    Set initial password for first-time users without requiring authentication.
+    This endpoint is for users who were created by admin and need to set their password on first login.
+    """
+    db = SessionLocal()
+    try:
+        # Find user by email
+        user = db.query(User).filter(User.email == request.email).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if user is admin
+        if user.is_admin:
+            raise HTTPException(status_code=403, detail="Admin accounts cannot use this endpoint")
+        
+        # Validate new password strength
+        if len(request.new_password) < 8:
+            raise HTTPException(status_code=400, detail="New password must be at least 8 characters long")
+        
+        if not any(c.isupper() for c in request.new_password):
+            raise HTTPException(status_code=400, detail="New password must contain at least one uppercase letter")
+        
+        if not any(c.islower() for c in request.new_password):
+            raise HTTPException(status_code=400, detail="New password must contain at least one lowercase letter")
+        
+        if not any(c.isdigit() for c in request.new_password):
+            raise HTTPException(status_code=400, detail="New password must contain at least one digit")
+        
+        # Check if passwords match
+        if request.new_password != request.confirm_password:
+            raise HTTPException(status_code=400, detail="New passwords do not match")
+        
+        # Hash and set new password
+        user.hashed_password = hash_password(request.new_password)
+        user.must_change_password = False
+        user.is_active = True
+        db.commit()
+        
+        logger.info(f"Initial password set successfully for user: {user.email}")
+        
+        return ChangePasswordResponse(
+            message="Password set successfully. You can now login with your new password."
+        )
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error setting initial password: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    finally:
+        db.close()
+
+
 @router.post("/logout")
 async def logout(
     response: Response,

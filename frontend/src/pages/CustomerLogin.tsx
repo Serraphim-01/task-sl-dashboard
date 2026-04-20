@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import { changePassword, checkForgotPasswordStatus, resetForgotPassword } from '../services/api.ts';
+import { changePassword, setInitialPassword, checkForgotPasswordStatus, resetForgotPassword } from '../services/api.ts';
 import { FaUserShield } from 'react-icons/fa';
 import Toast from '../components/Toast.tsx';
 
@@ -169,7 +169,12 @@ const CustomerLogin: React.FC = () => {
     setError(null);
 
     try {
-      await changePassword(passwordData);
+      // Use setInitialPassword endpoint which doesn't require authentication
+      await setInitialPassword({
+        email: formData.email,
+        new_password: passwordData.new_password,
+        confirm_password: passwordData.confirm_password
+      });
       setShowPasswordSetup(false);
       // Redirect to customer portal after password change
       navigate('/customer/portal');
@@ -210,7 +215,13 @@ const CustomerLogin: React.FC = () => {
     setError(null);
 
     try {
-      await changePassword(passwordData);
+      // For first-time login after successful authentication, use setInitialPassword
+      // since the user might not be fully authenticated yet
+      await setInitialPassword({
+        email: formData.email,
+        new_password: passwordData.new_password,
+        confirm_password: passwordData.confirm_password
+      });
       setShowPasswordSetup(false);
       // Redirect to customer portal after password change
       navigate('/customer/portal');
